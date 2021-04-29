@@ -396,4 +396,3 @@ if __name__ == '__main__':
         train()
     elif args.mode == 'test':
         test_all()
-

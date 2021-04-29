@@ -2,7 +2,8 @@
 #set -x
 export PYTHONWARNINGS="ignore"
 
-save_path=$2
+save_path="./checkpoints"
+ngpu=1
 
 if [ ! -d $save_path ];then
     mkdir -p $save_path
@@ -10,7 +11,7 @@ fi
 
 DATAPATH="./data/data_scene_flow_2012/"
 
-python -m torch.distributed.launch --nproc_per_node=$1 main.py --dataset kitti \
+python -m torch.distributed.launch --nproc_per_node=$ngpu main.py --dataset kitti \
     --datapath $DATAPATH --trainlist ./filenames/kitti12_train.txt --testlist ./filenames/kitti12_val.txt \
     --test_datapath $DATAPATH --test_dataset kitti \
     --epochs 300 --lrepochs "200:10" \
