@@ -25,7 +25,7 @@ class KITTIDataset(Dataset):
         left_images = [os.path.join(x,"0128_irL_denoised_half.png") for x in lines]
         right_images = [os.path.join(x,"0128_irR_denoised_half.png") for x in lines]
 
-        if self.training:
+        if self.disp_filenames is not None:
             disp_images = [os.path.join(x,"depthL.png") for x in lines]
             return left_images, right_images, disp_images
         else:
