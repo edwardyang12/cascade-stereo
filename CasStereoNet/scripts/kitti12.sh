@@ -10,7 +10,7 @@ fi
 
 DATAPATH="/cephfs/datasets/iccv_pnp/messy-table-dataset/v5/training"
 
-python -m torch.distributed.launch --nproc_per_node=1 main.py --dataset kitti \
+python -m torch.distributed.launch --nproc_per_node=1 /cephfs/jianyu/mt-cascade/CasStereoNet/main.py --dataset kitti \
     --datapath /cephfs/datasets/iccv_pnp/messy-table-dataset/v5/training --trainlist /cephfs/datasets/iccv_pnp/messy-table-dataset/v5/training_lists/200_train.txt --testlist /cephfs/datasets/iccv_pnp/messy-table-dataset/v5/training_lists/200_val.txt \
     --test_datapath /cephfs/datasets/iccv_pnp/messy-table-dataset/v5/training --test_dataset kitti \
     --epochs 300 --lrepochs "200:10" \
