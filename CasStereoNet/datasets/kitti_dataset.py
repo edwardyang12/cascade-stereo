@@ -9,8 +9,9 @@ from datasets.data_io import get_transform, read_all_lines
 class KITTIDataset(Dataset):
     def __init__(self, datapath, list_filename, training, crop_width, crop_height, test_crop_width, test_crop_height):
         self.datapath = datapath
-        self.left_filenames, self.right_filenames, self.disp_filenames = self.load_path(list_filename)
         self.training = training
+        self.left_filenames, self.right_filenames, self.disp_filenames = self.load_path(list_filename)
+
         self.crop_width = crop_width
         self.crop_height = crop_height
         self.test_crop_width = test_crop_width
@@ -25,7 +26,7 @@ class KITTIDataset(Dataset):
         left_images = [os.path.join(x,"0128_irL_denoised_half.png") for x in lines]
         right_images = [os.path.join(x,"0128_irR_denoised_half.png") for x in lines]
 
-        if self.disp_filenames is not None:
+        if self.training:
             disp_images = [os.path.join(x,"depthL.png") for x in lines]
             return left_images, right_images, disp_images
         else:
@@ -41,8 +42,8 @@ class KITTIDataset(Dataset):
         img_h = data.shape[1]
         img = img.resize((img_h,img_w))
         data = np.asarray(img,dtype=np.float32)
-        dis = 0.055*1387.095/data
-        #data = np.array(data) / 256.
+        dis = 55*1387.095/data
+        dis = dis / 256.
         return dis
 
     def __len__(self):
