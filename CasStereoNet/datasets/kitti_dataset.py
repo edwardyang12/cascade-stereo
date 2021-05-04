@@ -78,6 +78,8 @@ class KITTIDataset(Dataset):
                 print("left_img contains nan")
             elif outr:
                 print("right_img contains nan")
+            else:
+                print("no nan")
 
             return {"left": left_img,
                     "right": right_img,
