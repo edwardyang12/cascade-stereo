@@ -74,7 +74,7 @@ class KITTIDataset(Dataset):
 
             outl = (left_img != left_img).numpy().any()
             outr = (right_img != right_img).numpy().any()
-            if out1:
+            if outl:
                 print("left_img contains nan")
             elif outr:
                 print("right_img contains nan")
