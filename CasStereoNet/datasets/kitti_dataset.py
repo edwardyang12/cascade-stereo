@@ -26,11 +26,9 @@ class KITTIDataset(Dataset):
         left_images = [os.path.join(x,"0128_irL_denoised_half.png") for x in lines]
         right_images = [os.path.join(x,"0128_irR_denoised_half.png") for x in lines]
 
-        if self.training:
-            disp_images = [os.path.join(x,"depthL.png") for x in lines]
-            return left_images, right_images, disp_images
-        else:
-            return left_images, right_images, None
+        disp_images = [os.path.join(x,"depthL.png") for x in lines]
+        return left_images, right_images, disp_images
+
 
     def load_image(self, filename):
         return Image.open(filename).convert('RGB')
