@@ -72,6 +72,13 @@ class KITTIDataset(Dataset):
             left_img = processed(left_img)
             right_img = processed(right_img)
 
+            outl = left_img.isnan().numpy().any()
+            outr = right_img.isnan().numpy().any()
+            if out1:
+                print("left_img contains nan")
+            elif outr:
+                print("right_img contains nan")
+
             return {"left": left_img,
                     "right": right_img,
                     "disparity": disparity}
