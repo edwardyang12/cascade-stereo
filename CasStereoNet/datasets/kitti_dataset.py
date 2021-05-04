@@ -37,10 +37,7 @@ class KITTIDataset(Dataset):
 
     def load_disp(self, filename):
         img = Image.open(filename)
-        data = np.asarray(img,dtype=np.float32)
-        img_w = data.shape[0]
-        img_h = data.shape[1]
-        img = img.resize((img_h,img_w))
+        img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
         data = np.asarray(img,dtype=np.float32)
         dis = 55*1387.095/data
         dis = dis / 256.
