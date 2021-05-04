@@ -60,6 +60,7 @@ class KITTIDataset(Dataset):
             disparity = None
 
         if self.training:
+            print("left_img: ", left_img.size, " right_img: ", right_img.size, " dis_gt: ", disparity.size)
             w, h = left_img.size
             crop_w, crop_h = self.crop_width, self.crop_height
 
