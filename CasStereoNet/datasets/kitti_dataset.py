@@ -38,7 +38,7 @@ class KITTIDataset(Dataset):
         img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
         data = np.asarray(img,dtype=np.float32)
         dis = 55*1387.095/data
-        dis = np.nan_to_num(dis, copy=True, posinf=0, neginf=0)
+        dis = np.nan_to_num(dis)
         return dis
 
     def __len__(self):

@@ -410,7 +410,7 @@ class PSMNet(nn.Module):
                                                                       FineW=left.shape[3],
                                                                       disp_range_samples=disp_range_samples)
                 pred = pred3
-                
+
                 outputs_stage = {
                     "pred0": pred0,
                     "pred1": pred1,
