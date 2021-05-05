@@ -410,13 +410,7 @@ class PSMNet(nn.Module):
                                                                       FineW=left.shape[3],
                                                                       disp_range_samples=disp_range_samples)
                 pred = pred3
-                pred0c, pred1c, pred2c, pred3c = pred0.cpu(), pred1.cpu(), pred2.cpu(), pred3.cpu()
-                out0 = (pred0c != pred0c).numpy().any()
-                out1 = (pred1c != pred1c).numpy().any()
-                out2 = (pred2c != pred2c).numpy().any()
-                out3 = (pred3c != pred3c).numpy().any()
-                if out1 or out2 or out3 or out0:
-                    print("pred contains nan")
+                
                 outputs_stage = {
                     "pred0": pred0,
                     "pred1": pred1,

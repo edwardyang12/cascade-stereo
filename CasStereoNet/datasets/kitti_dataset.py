@@ -38,7 +38,7 @@ class KITTIDataset(Dataset):
         img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
         data = np.asarray(img,dtype=np.float32)
         dis = 55*1387.095/data
-        dis = dis / 256.
+        dis = np.nan_to_num(dis, copy=True, posinf=0, neginf=0)
         return dis
 
     def __len__(self):
@@ -71,13 +71,6 @@ class KITTIDataset(Dataset):
             processed = get_transform()
             left_img = processed(left_img)
             right_img = processed(right_img)
-
-            outl = (left_img != left_img).numpy().any()
-            outr = (right_img != right_img).numpy().any()
-            if outl:
-                print("left_img contains nan")
-            elif outr:
-                print("right_img contains nan")
 
             return {"left": left_img,
                     "right": right_img,
