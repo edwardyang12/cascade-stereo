@@ -17,4 +17,5 @@ python -m torch.distributed.launch --nproc_per_node=1 /cephfs/jianyu/mtcas/CasSt
     --crop_width 512  --crop_height 256 --test_crop_width 1248  --test_crop_height 768 \
     --ndisp "48,24" --disp_inter_r "4,1" --dlossw "0.5,2.0"  --using_ns --ns_size 3 \
     --model gwcnet-c --logdir "/cephfs/jianyu/mtcas/checkpoint"  --ndisps "48,24" \
-    --disp_inter_r "4,1"   --batch_size 2 --mode train  --model gwcnet-c
+    --disp_inter_r "4,1"   --batch_size 2 --mode train  --model gwcnet-c \
+    --lr 0.0005
