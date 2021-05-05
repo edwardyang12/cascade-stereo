@@ -343,7 +343,7 @@ def test_sample(sample, compute_metrics=True):
     outputs = model_eval(imgL, imgR)
 
     mask = (disp_gt < args.maxdisp) & (disp_gt > 0)
-    loss = torch.tensor(0, dtype=imgL.dtype, device=imgL.device, requires_grad=False) #model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in args.dlossw.split(",") if e])
+    loss = model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in args.dlossw.split(",") if e])#torch.tensor(0, dtype=imgL.dtype, device=imgL.device, requires_grad=False) #model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in args.dlossw.split(",") if e])
 
     outputs_stage = outputs["stage{}".format(num_stage)]
     disp_ests = [outputs_stage["pred"]]
