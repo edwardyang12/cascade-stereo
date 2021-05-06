@@ -356,7 +356,12 @@ def test_sample(sample, compute_metrics=True):
     scalar_outputs = {"loss": loss}
     image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR}
 
-    print(disp_ests[0].shape)
+    print(len(disp_ests))
+    depest = disp_ests[0].cpu().numpy()[0]
+    depest = dep[228:,:960]
+    dep_err = np.linalg.norm(depest - dep_gt)
+
+
 
     disp_ests_bad = disp_ests[0].cpu().numpy()
     disp_ests_gt_bad = disp_gt.cpu().numpy()
@@ -372,6 +377,7 @@ def test_sample(sample, compute_metrics=True):
     scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
     scalar_outputs["bad1.0"] = [bad1]
     scalar_outputs["bad2.0"] = [bad2]
+    scalar_outputs["dep_err"] = [dep_err]
 
     if compute_metrics:
         image_outputs["errormap"] = [disp_error_image_func()(disp_est, disp_gt) for disp_est in disp_ests]
