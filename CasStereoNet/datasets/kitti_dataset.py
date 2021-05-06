@@ -32,7 +32,7 @@ class KITTIDataset(Dataset):
         return left_images, right_images, disp_images, meta
 
 
-    def load_pickle(filename):
+    def load_pickle(self, filename):
         with open(filename, 'rb') as f:
             return pickle.load(f)
 
