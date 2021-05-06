@@ -364,7 +364,7 @@ def test_sample(sample, compute_metrics=True):
 
     depest = np.divide(f*b, depest)
 
-    #print(depest.dtype, dep_gt.dtype, depest.shape, dep_gt.shape)
+    print(depest.dtype, dep_gt.dtype, depest.shape, dep_gt.shape)
     dep_err_map = np.asarray(depest) - np.asarray(dep_gt[0])
     dep_err = np.linalg.norm(dep_err_map[maskest])
 
@@ -375,8 +375,10 @@ def test_sample(sample, compute_metrics=True):
 
 
 
-    disp_ests_bad = disp_ests[0].cpu().numpy()
-    disp_ests_gt_bad = disp_gt.cpu().numpy()
+    disp_ests_bad = disp_ests[0].cpu().numpy()[0]
+    disp_ests_gt_bad = disp_gt.cpu().numpy()[0]
+    disp_ests_bad = disp_ests_bad[228:,:960]
+    disp_ests_gt_bad = disp_ests_gt_bad[228:,:960]
 
     print(disp_ests_bad.shape, disp_ests_gt_bad.shape)
     bad1 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad) > 1)/518400
