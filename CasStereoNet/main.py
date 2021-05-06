@@ -340,7 +340,7 @@ def test_sample(sample, compute_metrics=True):
         model_eval = model
     model_eval.eval()
 
-    imgL, imgR, disp_gt, dep_gt = sample['left'], sample['right'], sample['disparity'], sample['depth']
+    imgL, imgR, disp_gt, dep_gt, f, b = sample['left'], sample['right'], sample['disparity'], sample['depth'], sample['f'], sample['baseline']
     imgL = imgL.cuda()
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
@@ -356,10 +356,19 @@ def test_sample(sample, compute_metrics=True):
     scalar_outputs = {"loss": loss}
     image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR}
 
-    print(len(disp_ests))
+
     depest = disp_ests[0].cpu().numpy()[0]
-    depest = dep[228:,:960]
-    dep_err = np.linalg.norm(depest - dep_gt)
+    depest = depest[228:,:960]
+    maskest = (depest < args.maxdisp) & (depest > 0)
+    depest = np.nan_to_num(f*b/depest)
+
+    dep_err_map = depest - dep_gt
+    dep_err = np.linalg.norm(dep_err_map[maskest])
+
+    dep_2 = np.sum(dep_err_map > 2)/518400
+    dep_4 = np.sum(dep_err_map > 4)/518400
+    dep_8 = np.sum(dep_err_map > 8)/518400
+
 
 
 
@@ -378,6 +387,9 @@ def test_sample(sample, compute_metrics=True):
     scalar_outputs["bad1.0"] = [bad1]
     scalar_outputs["bad2.0"] = [bad2]
     scalar_outputs["dep_err"] = [dep_err]
+    scalar_outputs["dep2"] = [dep_2]
+    scalar_outputs["dep4"] = [dep_4]
+    scalar_outputs["dep8"] = [dep_8]
 
     if compute_metrics:
         image_outputs["errormap"] = [disp_error_image_func()(disp_est, disp_gt) for disp_est in disp_ests]

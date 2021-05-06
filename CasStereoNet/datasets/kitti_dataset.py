@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
 from datasets.data_io import get_transform, read_all_lines
+import pickle
 
 
 class KITTIDataset(Dataset):
@@ -30,16 +31,29 @@ class KITTIDataset(Dataset):
         return left_images, right_images, disp_images
 
 
+    def load_pickle(filename):
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
+
+
     def load_image(self, filename):
         return Image.open(filename).convert('RGB')
 
-    def load_disp(self, filename):
+    def load_disp(self, filename, metafile):
         img = Image.open(filename)
+        meta = self.load_pickle(metafile)
+
         img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
         data = np.asarray(img,dtype=np.float32)
-        dis = 55*1387.095/data
+
+        el = meta['extrinsic_l'][:3,3]
+        er = meta['extrinsic_r'][:3,3]
+
+        b = np.linalg.norm(el-er)*1000
+        f = meta['intrinsic_r'][0][0]
+        dis = b*f/data
         dis = np.nan_to_num(dis)
-        return data, dis
+        return b, f, data, dis
 
     def __len__(self):
         return len(self.left_filenames)
@@ -50,7 +64,7 @@ class KITTIDataset(Dataset):
 
 
         if self.disp_filenames:  # has disparity ground truth
-            depth , disparity = self.load_disp(os.path.join(self.datapath, self.disp_filenames[index]))
+            b, f, depth , disparity = self.load_disp(os.path.join(self.datapath, self.disp_filenames[index]))
         else:
             disparity = None
 
@@ -102,7 +116,9 @@ class KITTIDataset(Dataset):
                         "disparity": disparity,
                         "top_pad": top_pad,
                         "right_pad": right_pad,
-                        "depth": depth}
+                        "depth": depth,
+                        "baseline": b,
+                        "f": f}
             else:
                 return {"left": left_img,
                         "right": right_img,
