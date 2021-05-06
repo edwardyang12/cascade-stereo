@@ -216,8 +216,6 @@ def train():
 
         # training
         for batch_idx, sample in enumerate(TrainImgLoader):
-            if batch_idx > 50:
-                break
 
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
             start_time = time.time()
@@ -364,7 +362,7 @@ def test_sample(sample, compute_metrics=True):
 
     depest = np.divide(f*b, depest)
 
-    print(depest.dtype, dep_gt.dtype, depest.shape, dep_gt.shape)
+    #print(depest.dtype, dep_gt.dtype, depest.shape, dep_gt.shape)
     dep_err_map = np.asarray(depest) - np.asarray(dep_gt[0])
     dep_err = np.linalg.norm(dep_err_map[maskest])
 
@@ -380,7 +378,7 @@ def test_sample(sample, compute_metrics=True):
     disp_ests_bad = disp_ests_bad[228:,:960]
     disp_ests_gt_bad = disp_ests_gt_bad[228:,:960]
 
-    print(disp_ests_bad.shape, disp_ests_gt_bad.shape)
+    #print(disp_ests_bad.shape, disp_ests_gt_bad.shape)
     bad1 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad) > 1)/518400
     bad2 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad) > 2)/518400
 
