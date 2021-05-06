@@ -216,6 +216,8 @@ def train():
 
         # training
         for batch_idx, sample in enumerate(TrainImgLoader):
+            if batch_idx > 50:
+                break
 
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
             start_time = time.time()
@@ -375,6 +377,8 @@ def test_sample(sample, compute_metrics=True):
 
     disp_ests_bad = disp_ests[0].cpu().numpy()
     disp_ests_gt_bad = disp_gt.cpu().numpy()
+
+    print(disp_ests_bad.shape, disp_ests_gt_bad.shape)
     bad1 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad) > 1)/518400
     bad2 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad) > 2)/518400
 
