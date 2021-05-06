@@ -11,7 +11,7 @@ class KITTIDataset(Dataset):
     def __init__(self, datapath, list_filename, training, crop_width, crop_height, test_crop_width, test_crop_height):
         self.datapath = datapath
         self.training = training
-        self.left_filenames, self.right_filenames, self.disp_filenames = self.load_path(list_filename)
+        self.left_filenames, self.right_filenames, self.disp_filenames, self.meta_filenames = self.load_path(list_filename)
 
         self.crop_width = crop_width
         self.crop_height = crop_height
@@ -28,7 +28,8 @@ class KITTIDataset(Dataset):
         right_images = [os.path.join(x,"0128_irR_denoised_half.png") for x in lines]
 
         disp_images = [os.path.join(x,"depthL.png") for x in lines]
-        return left_images, right_images, disp_images
+        meta = [os.path.join(x,"meta.pkl") for x in lines]
+        return left_images, right_images, disp_images, meta
 
 
     def load_pickle(filename):
@@ -64,7 +65,7 @@ class KITTIDataset(Dataset):
 
 
         if self.disp_filenames:  # has disparity ground truth
-            b, f, depth , disparity = self.load_disp(os.path.join(self.datapath, self.disp_filenames[index]))
+            b, f, depth , disparity = self.load_disp(os.path.join(self.datapath, self.disp_filenames[index]), os.path.join(self.datapath, self.meta_filenames[index]))
         else:
             disparity = None
 
