@@ -216,7 +216,7 @@ def train():
 
         # training
         for batch_idx, sample in enumerate(TrainImgLoader):
-            if batch_idx > 200:
+            if batch_idx > 100:
                 break
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
             start_time = time.time()
@@ -356,7 +356,7 @@ def test_sample(sample, compute_metrics=True):
     scalar_outputs = {"loss": loss}
     image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR}
 
-    print(disp_ests.shape)
+    print(disp_ests[0].shape)
 
     disp_ests_bad = disp_ests[0].cpu().numpy()
     disp_ests_gt_bad = disp_gt.cpu().numpy()
