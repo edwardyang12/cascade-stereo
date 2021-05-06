@@ -216,6 +216,8 @@ def train():
 
         # training
         for batch_idx, sample in enumerate(TrainImgLoader):
+            if batch_idx > 200:
+                break
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
             start_time = time.time()
             do_summary = global_step % args.summary_freq == 0
@@ -304,6 +306,8 @@ def train_sample(sample, compute_metrics=False):
 
     scalar_outputs = {"loss": loss}
     image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR}
+
+
     if compute_metrics:
         with torch.no_grad():
             image_outputs["errormap"] = [disp_error_image_func()(disp_est, disp_gt) for disp_est in disp_ests]
@@ -312,6 +316,7 @@ def train_sample(sample, compute_metrics=False):
             scalar_outputs["Thres1"] = [Thres_metric(disp_est, disp_gt, mask, 1.0) for disp_est in disp_ests]
             scalar_outputs["Thres2"] = [Thres_metric(disp_est, disp_gt, mask, 2.0) for disp_est in disp_ests]
             scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
+
 
     if is_distributed and args.using_apex:
         with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -335,7 +340,7 @@ def test_sample(sample, compute_metrics=True):
         model_eval = model
     model_eval.eval()
 
-    imgL, imgR, disp_gt = sample['left'], sample['right'], sample['disparity']
+    imgL, imgR, disp_gt, dep_gt = sample['left'], sample['right'], sample['disparity'], sample['depth']
     imgL = imgL.cuda()
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
@@ -351,11 +356,22 @@ def test_sample(sample, compute_metrics=True):
     scalar_outputs = {"loss": loss}
     image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR}
 
+    print(disp_ests.shape)
+
+    disp_ests_bad = disp_ests[0].cpu().numpy()
+    disp_ests_gt_bad = disp_gt.cpu().numpy()
+    bad1 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad) > 1)/518400
+    bad2 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad) > 2)/518400
+
+    dep_gt = disp_gt
+
     scalar_outputs["D1"] = [D1_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
     scalar_outputs["EPE"] = [EPE_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
     scalar_outputs["Thres1"] = [Thres_metric(disp_est, disp_gt, mask, 1.0) for disp_est in disp_ests]
     scalar_outputs["Thres2"] = [Thres_metric(disp_est, disp_gt, mask, 2.0) for disp_est in disp_ests]
     scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
+    scalar_outputs["bad1.0"] = [bad1]
+    scalar_outputs["bad2.0"] = [bad2]
 
     if compute_metrics:
         image_outputs["errormap"] = [disp_error_image_func()(disp_est, disp_gt) for disp_est in disp_ests]

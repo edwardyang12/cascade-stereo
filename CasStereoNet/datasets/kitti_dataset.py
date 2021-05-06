@@ -39,7 +39,7 @@ class KITTIDataset(Dataset):
         data = np.asarray(img,dtype=np.float32)
         dis = 55*1387.095/data
         dis = np.nan_to_num(dis)
-        return dis
+        return data, dis
 
     def __len__(self):
         return len(self.left_filenames)
@@ -50,7 +50,7 @@ class KITTIDataset(Dataset):
 
 
         if self.disp_filenames:  # has disparity ground truth
-            disparity = self.load_disp(os.path.join(self.datapath, self.disp_filenames[index]))
+            depth , disparity = self.load_disp(os.path.join(self.datapath, self.disp_filenames[index]))
         else:
             disparity = None
 
@@ -101,7 +101,8 @@ class KITTIDataset(Dataset):
                         "right": right_img,
                         "disparity": disparity,
                         "top_pad": top_pad,
-                        "right_pad": right_pad}
+                        "right_pad": right_pad,
+                        "depth": depth}
             else:
                 return {"left": left_img,
                         "right": right_img,
