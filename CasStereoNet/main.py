@@ -360,7 +360,7 @@ def test_sample(sample, compute_metrics=True):
     depest = disp_ests[0].cpu().numpy()[0]
     depest = depest[228:,:960]
     maskest = (depest < args.maxdisp) & (depest > 0)
-    print(depest.dtype)
+    print(depest.dtype, depest)
     depest = f*b/depest
 
     dep_err_map = depest - dep_gt
