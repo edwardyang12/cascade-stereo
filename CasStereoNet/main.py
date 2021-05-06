@@ -361,7 +361,7 @@ def test_sample(sample, compute_metrics=True):
     depest = depest[228:,:960]
     maskest = (depest < args.maxdisp) & (depest > 0)
     print(type(depest))
-    depest = f*b/depest
+    depest = np.divide(f*b, depest)
 
     dep_err_map = depest - dep_gt
     dep_err = np.linalg.norm(dep_err_map[maskest])
