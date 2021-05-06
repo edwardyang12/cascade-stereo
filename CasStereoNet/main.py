@@ -364,7 +364,7 @@ def test_sample(sample, compute_metrics=True):
     depest = np.divide(f*b, depest)
 
     print(depest.dtype, dep_gt.dtype, depest.shape, dep_gt.shape)
-    dep_err_map = depest - dep_gt
+    dep_err_map = np.asarray(depest) - np.asarray(dep_gt[0])
     dep_err = np.linalg.norm(dep_err_map[maskest])
 
     dep_2 = np.sum(dep_err_map[maskest] > 2)/518400
