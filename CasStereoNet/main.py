@@ -216,7 +216,7 @@ def train():
 
         # training
         for batch_idx, sample in enumerate(TrainImgLoader):
-            if batch_idx > 100:
+            if batch_idx > 50:
                 break
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
             start_time = time.time()
@@ -360,15 +360,14 @@ def test_sample(sample, compute_metrics=True):
     depest = disp_ests[0].cpu().numpy()[0]
     depest = depest[228:,:960]
     maskest = (depest < args.maxdisp) & (depest > 0)
-    print(type(depest), depest.shape)
-    depest = np.nan_to_num(f*b/depest)
+    depest = f*b/depest
 
     dep_err_map = depest - dep_gt
     dep_err = np.linalg.norm(dep_err_map[maskest])
 
-    dep_2 = np.sum(dep_err_map > 2)/518400
-    dep_4 = np.sum(dep_err_map > 4)/518400
-    dep_8 = np.sum(dep_err_map > 8)/518400
+    dep_2 = np.sum(dep_err_map[maskest] > 2)/518400
+    dep_4 = np.sum(dep_err_map[maskest] > 4)/518400
+    dep_8 = np.sum(dep_err_map[maskest] > 8)/518400
 
 
 
