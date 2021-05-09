@@ -51,7 +51,7 @@ class KITTIDataset(Dataset):
         er = meta['extrinsic_r'][:3,3]
 
         b = np.linalg.norm(el-er)*1000
-        f = meta['intrinsic_r'][0][0]
+        f = meta['intrinsic_r'][0][0]/2
 
         dis = b*f/data
         dis = np.nan_to_num(dis)
