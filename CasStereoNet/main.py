@@ -295,8 +295,10 @@ def train_sample(sample, compute_metrics=False):
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
 
-    print(disp_gt.shape)
-    disparity_L_from_R = apply_disparity_cu(disp_gt, disp_gt.int())
+    #print(disp_gt.shape)
+    disp_gt_t = disp_gt.reshape((2,1,256,512))
+    disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
+    print(disparity_L_from_R.shape)
 
     optimizer.zero_grad()
 
