@@ -93,6 +93,10 @@ def save_images(logger, mode_tag, images_dict, global_step):
             logger.add_image(image_name, vutils.make_grid(value, padding=0, nrow=1, normalize=True, scale_each=True),
                              global_step)
 
+def save_outputs(logger, mode_tag, text_outputs, global_step):
+    for tag, values in text_outputs.items():
+        logger.add_text(tag, value, global_step)
+
 
 def adjust_learning_rate(optimizer, epoch, base_lr, lrepochs):
     splits = lrepochs.split(':')

@@ -221,11 +221,12 @@ def train():
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
             start_time = time.time()
             do_summary = global_step % args.summary_freq == 0
-            loss, scalar_outputs, image_outputs = train_sample(sample, compute_metrics=do_summary)
+            loss, scalar_outputs, image_outputs, text_outputs = train_sample(sample, compute_metrics=do_summary)
             if (not is_distributed) or (dist.get_rank() == 0):
                 if do_summary:
                     save_scalars(logger, 'train', scalar_outputs, global_step)
                     save_images(logger, 'train', image_outputs, global_step)
+                    save_texts(logger, 'train', text_outputs, global_step)
                 del scalar_outputs, image_outputs
                 if batch_idx % args.log_freq == 0:
                     if isinstance(loss, (list, tuple)):
@@ -295,11 +296,13 @@ def train_sample(sample, compute_metrics=False):
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
 
+    disp_gt_b = disp_gt
     #print(disp_gt.shape)
     disp_gt_t = disp_gt.reshape((2,1,256,512))
     disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
     disp_gt = disparity_L_from_R.reshape((2,256,512))
     #print(disp_gt.shape)
+    disp_gt_a = disp_gt
 
     optimizer.zero_grad()
 
@@ -312,6 +315,7 @@ def train_sample(sample, compute_metrics=False):
 
     scalar_outputs = {"loss": loss}
     image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR}
+    text_outputs = {}
 
 
     if compute_metrics:
@@ -322,6 +326,8 @@ def train_sample(sample, compute_metrics=False):
             scalar_outputs["Thres1"] = [Thres_metric(disp_est, disp_gt, mask, 1.0) for disp_est in disp_ests]
             scalar_outputs["Thres2"] = [Thres_metric(disp_est, disp_gt, mask, 2.0) for disp_est in disp_ests]
             scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
+            text_outputs["before_warp"] = [str(disp_gt_b)]
+            text_outputs["after_warp"] = [str(disp_gt_a)]
 
 
     if is_distributed and args.using_apex:
@@ -334,7 +340,7 @@ def train_sample(sample, compute_metrics=False):
     if is_distributed:
         scalar_outputs = reduce_scalar_outputs(scalar_outputs)
 
-    return tensor2float(scalar_outputs["loss"]), tensor2float(scalar_outputs), image_outputs
+    return tensor2float(scalar_outputs["loss"]), tensor2float(scalar_outputs), image_outputs, text_outputs
 
 
 # test one sample
