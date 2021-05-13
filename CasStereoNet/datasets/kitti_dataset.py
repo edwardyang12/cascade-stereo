@@ -6,6 +6,7 @@ import numpy as np
 from datasets.data_io import get_transform, read_all_lines
 import pickle
 from datasets.warp_ops import *
+import torch
 
 
 class KITTIDataset(Dataset):
@@ -77,8 +78,12 @@ class KITTIDataset(Dataset):
             b, f, depthL, depthR, disparity_L, disparity_R = self.load_disp(os.path.join(self.datapath, self.disp_filenames_L[index]), \
                                                     os.path.join(self.datapath, self.disp_filenames_R[index]), \
                                                     os.path.join(self.datapath, self.meta_filenames[index]))
-            print(type(disparity_R), disparity_R.shape)
-            disparity_L_from_R = apply_disparity_cu(disparity_R, int(disparity_R))
+            #print(type(disparity_R), disparity_R.shape)
+            disparity_R_t = torch.tensor(disparity_R)
+            disparity_R_ti = torch.tensor(disparity_R, dtype=torch.int)
+            disparity_R_t = disparity_R_t.reshape((1,1,disparity_R_t.shape[0],disparity_R_t.shape[1]))
+            disparity_R_ti = disparity_R_ti.reshape((1,1,disparity_R_ti.shape[0],disparity_R_ti.shape[1]))
+            disparity_L_from_R = apply_disparity_cu(disparity_R_t, disparity_R_ti)
 
         else:
             disparity_L = None
