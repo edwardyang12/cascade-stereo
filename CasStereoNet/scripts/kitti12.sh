@@ -16,5 +16,5 @@ python -m torch.distributed.launch --nproc_per_node=1 /cephfs/jianyu/mtcaseval/C
     --epochs 300 --lrepochs "200:10" \
     --crop_width 512  --crop_height 256 --test_crop_width 1248  --test_crop_height 768 \
     --ndisp "48,24" --disp_inter_r "4,1" --dlossw "0.5,2.0"  --using_ns --ns_size 3 \
-    --model gwcnet --logdir "/cephfs/jianyu/mtcaseval/checkpoint"  --ndisps "48,24" \
-    --disp_inter_r "4,1"   --batch_size 2 --mode train 
+    --model gwcnet-c --logdir "/cephfs/jianyu/mtcaseval/checkpoint"  --ndisps "48,24" \
+    --disp_inter_r "4,1"   --batch_size 2 --mode train
