@@ -298,7 +298,8 @@ def train_sample(sample, compute_metrics=False):
     #print(disp_gt.shape)
     disp_gt_t = disp_gt.reshape((2,1,256,512))
     disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
-    print(disparity_L_from_R.shape)
+    disp_gt = disparity_L_from_R.reshape((2,256,512))
+    print(disp_gt)
 
     optimizer.zero_grad()
 
