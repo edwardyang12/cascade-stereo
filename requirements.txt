@@ -5,3 +5,4 @@ pillow
 tensorboardX
 plyfile
 pynvrtc
+cupy-cuda100
