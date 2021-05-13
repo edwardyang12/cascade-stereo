@@ -77,6 +77,7 @@ class KITTIDataset(Dataset):
             b, f, depthL, depthR, disparity_L, disparity_R = self.load_disp(os.path.join(self.datapath, self.disp_filenames_L[index]), \
                                                     os.path.join(self.datapath, self.disp_filenames_R[index]), \
                                                     os.path.join(self.datapath, self.meta_filenames[index]))
+            print(type(disparity_R))
             disparity_L_from_R = apply_disparity_cu(disparity_R, int(disparity_R))
 
         else:
