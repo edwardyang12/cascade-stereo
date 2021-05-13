@@ -5,7 +5,7 @@ from PIL import Image
 import numpy as np
 from datasets.data_io import get_transform, read_all_lines
 import pickle
-import warp_ops
+from datasets.warp_ops import *
 
 
 class KITTIDataset(Dataset):
