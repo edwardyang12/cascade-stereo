@@ -358,10 +358,10 @@ def test_sample(sample, compute_metrics=True):
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
 
-    print(disp_gt.shape)
-    disp_gt_t = disp_gt.reshape((2,1,256,512))
+    #print(disp_gt.shape)
+    disp_gt_t = disp_gt.reshape((1,1,768,1248))
     disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
-    disp_gt = disparity_L_from_R.reshape((2,256,512))
+    disp_gt = disparity_L_from_R.reshape((1,768,1248))
 
     outputs = model_eval(imgL, imgR)
 
