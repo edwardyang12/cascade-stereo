@@ -73,7 +73,7 @@ class KITTIDataset(Dataset):
         right_img = self.load_image(os.path.join(self.datapath, self.right_filenames[index]))
 
 
-        if self.disp_filenames:  # has disparity ground truth
+        if self.disp_filenames_L:  # has disparity ground truth
             b, f, depthL, depthR, disparity_L, disparity_R = self.load_disp(os.path.join(self.datapath, self.disp_filenames_L[index]), \
                                                     os.path.join(self.datapath, self.disp_filenames_R[index]), \
                                                     os.path.join(self.datapath, self.meta_filenames[index]))
