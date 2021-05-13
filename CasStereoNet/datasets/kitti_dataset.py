@@ -79,16 +79,16 @@ class KITTIDataset(Dataset):
                                                     os.path.join(self.datapath, self.disp_filenames_R[index]), \
                                                     os.path.join(self.datapath, self.meta_filenames[index]))
             #print(type(disparity_R), disparity_R.shape)
-            disparity_R_t = torch.tensor(disparity_R)
-            disparity_R_ti = torch.tensor(disparity_R, dtype=torch.int)
-            disparity_R_t = disparity_R_t.reshape((1,1,disparity_R_t.shape[0],disparity_R_t.shape[1]))
-            disparity_R_ti = disparity_R_ti.reshape((1,1,disparity_R_ti.shape[0],disparity_R_ti.shape[1]))
-            disparity_L_from_R = apply_disparity_cu(disparity_R_t, disparity_R_ti)
+            #disparity_R_t = torch.tensor(disparity_R)
+            #disparity_R_ti = torch.tensor(disparity_R, dtype=torch.int)
+            #disparity_R_t = disparity_R_t.reshape((1,1,disparity_R_t.shape[0],disparity_R_t.shape[1]))
+            #disparity_R_ti = disparity_R_ti.reshape((1,1,disparity_R_ti.shape[0],disparity_R_ti.shape[1]))
+            #disparity_L_from_R = apply_disparity_cu(disparity_R_t, disparity_R_ti)
 
         else:
             disparity_L = None
             disparity_R = None
-            disparity_L_from_R = None
+            #disparity_L_from_R = None
 
         if self.training:
             #print("left_img: ", left_img.size, " right_img: ", right_img.size, " dis_gt: ", disparity.size)
@@ -102,7 +102,7 @@ class KITTIDataset(Dataset):
             left_img = left_img.crop((x1, y1, x1 + crop_w, y1 + crop_h))
             right_img = right_img.crop((x1, y1, x1 + crop_w, y1 + crop_h))
             disparity_L = disparity_L[y1:y1 + crop_h, x1:x1 + crop_w]
-            disparity_L_from_R = disparity_L_from_R[y1:y1 + crop_h, x1:x1 + crop_w]
+            disparity_R = disparity_R[y1:y1 + crop_h, x1:x1 + crop_w]
 
             # to tensor, normalize
             processed = get_transform()
@@ -111,7 +111,7 @@ class KITTIDataset(Dataset):
 
             return {"left": left_img,
                     "right": right_img,
-                    "disparity": disparity_L_from_R}
+                    "disparity": disparity_R}
         else:
             w, h = left_img.size
 
@@ -136,7 +136,7 @@ class KITTIDataset(Dataset):
             if disparity is not None:
                 return {"left": left_img,
                         "right": right_img,
-                        "disparity": disparity_L_from_R,
+                        "disparity": disparity_R,
                         "top_pad": top_pad,
                         "right_pad": right_pad,
                         "depth": depthL,

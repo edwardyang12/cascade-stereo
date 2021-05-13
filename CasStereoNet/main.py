@@ -17,6 +17,7 @@ from datasets import __datasets__
 from models import __models__, __loss__
 from utils import *
 import gc
+from datasets.warp_ops import *
 
 cudnn.benchmark = True
 assert torch.backends.cudnn.enabled, "Amp requires cudnn backend to be enabled."
@@ -293,6 +294,9 @@ def train_sample(sample, compute_metrics=False):
     imgL = imgL.cuda()
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
+
+    print(disp_gt.shape)
+    disparity_L_from_R = apply_disparity_cu(disp_gt, disp_gt.int())
 
     optimizer.zero_grad()
 
