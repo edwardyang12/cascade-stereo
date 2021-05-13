@@ -131,7 +131,7 @@ class KITTIDataset(Dataset):
             # pad disparity gt
             if disparity is not None:
                 assert len(disparity.shape) == 2
-                disparity_L_from_R = np.lib.pad(disparity_L_from_R, ((top_pad, 0), (0, right_pad)), mode='constant', constant_values=0)
+                disparity_L = np.lib.pad(disparity_L, ((top_pad, 0), (0, right_pad)), mode='constant', constant_values=0)
 
             if disparity is not None:
                 return {"left": left_img,
