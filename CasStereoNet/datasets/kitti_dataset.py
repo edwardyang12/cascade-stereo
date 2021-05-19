@@ -60,10 +60,12 @@ class KITTIDataset(Dataset):
         b = np.linalg.norm(el-er)*1000
         f = meta['intrinsic_r'][0][0]/2
 
+        mask_l = (data_L == 0)
+        mask_r = (data_R == 0)
         dis_L = b*f/data_L
-        dis_L = np.nan_to_num(dis_L)
+        dis_L[mask_l] = 0
         dis_R = b*f/data_R
-        dis_R = np.nan_to_num(dis_R)
+        dis_R[mask_r] = 0
         return b, f, data_L, data_R, dis_L, dis_R
 
     def __len__(self):
