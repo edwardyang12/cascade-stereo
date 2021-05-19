@@ -305,7 +305,7 @@ def train_sample(sample, compute_metrics=False):
     weights = torch.tensor([[0.11111, 0.11111, 0.11111],
                         [0.11111, 0.11111, 0.11111],
                         [0.11111, 0.11111, 0.11111]])
-    weights = weights.view(1, 1, 3, 3).repeat(1, 2, 1, 1)
+    weights = weights.view(1, 1, 3, 3).repeat(1, 2, 1, 1).cuda()
 
     disp_gt = F.conv2d(disp_gt, weights)
     disp_gt = disp_gt.reshape((2,256,512))
