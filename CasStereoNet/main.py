@@ -217,8 +217,7 @@ def train():
 
         # training
         for batch_idx, sample in enumerate(TrainImgLoader):
-            if batch_idx > 1:
-                break
+        
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
             start_time = time.time()
             do_summary = global_step % args.summary_freq == 0
