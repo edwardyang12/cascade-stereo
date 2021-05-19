@@ -302,6 +302,13 @@ def train_sample(sample, compute_metrics=False):
     disp_gt_t = disp_gt.reshape((2,1,256,512))
     disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
     disp_gt = disparity_L_from_R.reshape((2,256,512))
+
+    weights = torch.tensor([[0.11111, 0.11111, 0.11111],
+                        [0.11111, 0.11111, 0.11111],
+                        [0.11111, 0.11111, 0.11111]])
+    weights = weights.view(1, 1, 3, 3).repeat(1, 2, 1, 1)
+
+    disp_gt = F.conv2d(disp_gt, weights)
     #print(disp_gt.shape)
     #disp_gt_a = disp_gt
 
