@@ -219,6 +219,8 @@ def train():
         # training
         for batch_idx, sample in enumerate(TrainImgLoader):
 
+            if batch_idx > 5:
+                break
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
             start_time = time.time()
             do_summary = global_step % args.summary_freq == 0
@@ -304,9 +306,9 @@ def train_sample(sample, compute_metrics=False):
     #disp_gt = disparity_L_from_R.reshape((1,2,256,512))
     disp_gt = disparity_L_from_R.reshape((2,256,512))
 
-    disp_gt = cv2.medianBlur(disp_gt.numpy(),3)
+    disp_gt = cv2.medianBlur(disp_gt.cpu().numpy(),3)
 
-    disp_gt = torch.from_numpy(disp_gt)
+    disp_gt = torch.from_numpy(disp_gt).cuda()
     #print(disp_gt.shape)
     #disp_gt_a = disp_gt
 
@@ -366,7 +368,12 @@ def test_sample(sample, compute_metrics=True):
     #print(disp_gt.shape)
     disp_gt_t = disp_gt.reshape((1,1,768,1248))
     disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
+
     disp_gt = disparity_L_from_R.reshape((1,768,1248))
+
+    disp_gt = cv2.medianBlur(disp_gt.cpu().numpy(),3)
+
+    disp_gt = torch.from_numpy(disp_gt).cuda()
 
     outputs = model_eval(imgL, imgR)
 
