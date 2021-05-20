@@ -18,6 +18,7 @@ from models import __models__, __loss__
 from utils import *
 import gc
 from datasets.warp_ops import *
+import cv2
 
 cudnn.benchmark = True
 assert torch.backends.cudnn.enabled, "Amp requires cudnn backend to be enabled."
@@ -301,14 +302,11 @@ def train_sample(sample, compute_metrics=False):
     disp_gt_t = disp_gt.reshape((2,1,256,512))
     disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
     #disp_gt = disparity_L_from_R.reshape((1,2,256,512))
+    disp_gt = disparity_L_from_R.reshape((2,256,512))
 
-    weights = torch.tensor([[0.11111, 0.11111, 0.11111],
-                        [0.11111, 0.11111, 0.11111],
-                        [0.11111, 0.11111, 0.11111]])
-    weights = weights.view(1, 1, 3, 3).repeat(1, 1, 1, 1).cuda()
+    disp_gt = cv2.medianBlur(disp_gt.numpy(),3)
 
-    disp_gt = F.conv2d(disparity_L_from_R, weights, padding=1)
-    disp_gt = disp_gt.reshape((2,256,512))
+    disp_gt = torch.from_numpy(disp_gt)
     #print(disp_gt.shape)
     #disp_gt_a = disp_gt
 
