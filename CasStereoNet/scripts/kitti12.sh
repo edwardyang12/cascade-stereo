@@ -9,7 +9,7 @@ if [ ! -d $save_path ];then
 fi
 
 DATAPATH="/cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training"
-
+pip install --upgrade pip setuptools wheel
 python -m torch.distributed.launch --nproc_per_node=1 /cephfs/jianyu/mtcaseval/CasStereoNet/main.py --dataset kitti \
     --datapath /cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training --trainlist /cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training_lists/all_train.txt --testlist /cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training_lists/all_val.txt \
     --test_datapath /cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training --test_dataset kitti \
