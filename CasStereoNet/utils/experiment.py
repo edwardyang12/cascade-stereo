@@ -84,6 +84,7 @@ def save_images(logger, mode_tag, images_dict, global_step):
         for idx, value in enumerate(values):
             if len(value.shape) == 3:
                 value = value[:, np.newaxis, :, :]
+            print(type(value), value.shape)
             value = value[:1]
             value = torch.from_numpy(value)
 
