@@ -369,11 +369,11 @@ def test_sample(sample, compute_metrics=True):
     disp_gt_t = disp_gt.reshape((1,1,768,1248))
     disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
 
-    disp_gt = disparity_L_from_R.reshape((1,768,1248))
+    disp_gt = disparity_L_from_R.reshape((768,1248))
 
     disp_gt = cv2.medianBlur(disp_gt.cpu().numpy(),3)
 
-    disp_gt = torch.from_numpy(disp_gt).cuda()
+    disp_gt = torch.from_numpy(disp_gt).cuda().reshape((1,768,1248))
 
     outputs = model_eval(imgL, imgR)
 
