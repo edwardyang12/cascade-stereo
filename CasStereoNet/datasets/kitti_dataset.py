@@ -27,11 +27,11 @@ class KITTIDataset(Dataset):
 
     def load_path(self, list_filename):
         lines = read_all_lines(list_filename)
-        left_images = [os.path.join(x,"0128_irL_denoised_half.png") for x in lines]
-        right_images = [os.path.join(x,"0128_irR_denoised_half.png") for x in lines]
+        left_images = [os.path.join(x,"0000_irL_original.png") for x in lines]
+        right_images = [os.path.join(x,"0000_irR_original.png") for x in lines]
 
-        disp_images_L = [os.path.join(x,"depthL.png") for x in lines]
-        disp_images_R = [os.path.join(x,"depthR.png") for x in lines]
+        disp_images_L = [os.path.join(x,"depth.png") for x in lines]
+        disp_images_R = [os.path.join(x,"depth.png") for x in lines]
         meta = [os.path.join(x,"meta.pkl") for x in lines]
         return left_images, right_images, disp_images_L, disp_images_R, meta
 
@@ -42,7 +42,9 @@ class KITTIDataset(Dataset):
 
 
     def load_image(self, filename):
-        return Image.open(filename).convert('RGB')
+        img = Image.open(filename).convert('RGB')
+        img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
+        return img
 
     def load_disp(self, filename_L, filename_R, metafile):
         img_L = Image.open(filename_L)
