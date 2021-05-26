@@ -27,11 +27,11 @@ class KITTIDataset(Dataset):
 
     def load_path(self, list_filename):
         lines = read_all_lines(list_filename)
-        left_images = [os.path.join(x,"0000_irL_original.png") for x in lines]
-        right_images = [os.path.join(x,"0000_irR_original.png") for x in lines]
+        left_images = [os.path.join(x,"1024_irL_real_1080.png") for x in lines]
+        right_images = [os.path.join(x,"1024_irR_real_1080.png") for x in lines]
 
-        disp_images_L = [os.path.join(x,"depth.png") for x in lines]
-        disp_images_R = [os.path.join(x,"depth.png") for x in lines]
+        disp_images_L = [os.path.join(x,"depthL.png") for x in lines]
+        disp_images_R = [os.path.join(x,"depthR.png") for x in lines]
         meta = [os.path.join(x,"meta.pkl") for x in lines]
         return left_images, right_images, disp_images_L, disp_images_R, meta
 
@@ -80,9 +80,9 @@ class KITTIDataset(Dataset):
 
 
         if self.disp_filenames_L:  # has disparity ground truth
-            b, f, depthL, depthR, disparity_L, disparity_R = self.load_disp(os.path.join(self.datapath, self.disp_filenames_L[index]), \
-                                                    os.path.join(self.datapath, self.disp_filenames_R[index]), \
-                                                    os.path.join(self.datapath, self.meta_filenames[index]))
+            b, f, depthL, depthR, disparity_L, disparity_R = self.load_disp(os.path.join("/cephfs/datasets/iccv_pnp/messy-table-dataset/real_v9/training", self.disp_filenames_L[index]), \
+                                                    os.path.join("/cephfs/datasets/iccv_pnp/messy-table-dataset/real_v9/training", self.disp_filenames_R[index]), \
+                                                    os.path.join("/cephfs/datasets/iccv_pnp/messy-table-dataset/real_v9/training", self.meta_filenames[index]))
             #print(type(disparity_R), disparity_R.shape)
             #disparity_R_t = torch.tensor(disparity_R)
             #disparity_R_ti = torch.tensor(disparity_R, dtype=torch.int)
