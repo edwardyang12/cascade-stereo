@@ -42,6 +42,7 @@ class KITTIDataset(Dataset):
 
 
     def load_image(self, filename):
+        Image.LOAD_TRUNCATED_IMAGES = True
         img = Image.open(filename).convert('RGB')
         img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
         return img
