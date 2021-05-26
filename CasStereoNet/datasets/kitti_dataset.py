@@ -56,7 +56,7 @@ class KITTIDataset(Dataset):
         data_L = np.asarray(img_L,dtype=np.float32)
         data_R = np.asarray(img_R,dtype=np.float32)
 
-        print(meta)
+        #print(meta)
         el = meta['extrinsic_l'][:3,3]
         er = meta['extrinsic_r'][:3,3]
 
