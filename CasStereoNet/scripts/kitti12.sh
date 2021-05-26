@@ -19,4 +19,4 @@ python -m torch.distributed.launch --nproc_per_node=1 /cephfs/jianyu/mtcaseval/C
     --ndisp "48,24" --disp_inter_r "4,1" --dlossw "0.5,2.0"  --using_ns --ns_size 3 \
     --model gwcnet-c --logdir "/cephfs/jianyu/real_v9_result"  --ndisps "48,24" \
     --disp_inter_r "4,1"   --batch_size 2 --mode test \
-    --load_ckpt "/cephfs/jianyu/mtcasckpt/checkpoint_best.ckpt"
+    --loadckpt "/cephfs/jianyu/mtcasckpt/checkpoint_best.ckpt"
