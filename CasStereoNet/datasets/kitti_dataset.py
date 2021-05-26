@@ -7,7 +7,7 @@ from datasets.data_io import get_transform, read_all_lines
 import pickle
 from datasets.warp_ops import *
 import torch
-
+Image.LOAD_TRUNCATED_IMAGES = True
 
 class KITTIDataset(Dataset):
     def __init__(self, datapath, list_filename, training, crop_width, crop_height, test_crop_width, test_crop_height):
@@ -42,7 +42,6 @@ class KITTIDataset(Dataset):
 
 
     def load_image(self, filename):
-        Image.LOAD_TRUNCATED_IMAGES = True
         img = Image.open(filename).convert('RGB')
         img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
         return img
@@ -76,6 +75,7 @@ class KITTIDataset(Dataset):
         return len(self.left_filenames)
 
     def __getitem__(self, index):
+
         left_img = self.load_image(os.path.join(self.datapath, self.left_filenames[index]))
         right_img = self.load_image(os.path.join(self.datapath, self.right_filenames[index]))
 
