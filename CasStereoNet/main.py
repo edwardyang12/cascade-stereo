@@ -438,8 +438,6 @@ def test_all():
     # testing
     avg_test_scalars = AverageMeterDict()
     for batch_idx, sample in enumerate(TestImgLoader):
-        if batch_idx == 100:
-            break
         start_time = time.time()
         do_summary = batch_idx % args.summary_freq == 0
         loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=False)
