@@ -387,8 +387,9 @@ def test_sample(sample, compute_metrics=True):
 
     depest = disp_ests[0].cpu().numpy()[0]
     depest = depest[228:,:960]
-    dispgt = disp_gt[228:,:960].cpu().numpy()
-    print(dispgt.shape)
+    dispgt = disp_gt.cpu().numpy()[0]
+    dispgt = dispgt[228:,:960]
+    #print(dispgt.shape)
     maskest = (dispgt < args.maxdisp) & (dispgt > 0)
 
     depest = np.divide(f*b, depest)
