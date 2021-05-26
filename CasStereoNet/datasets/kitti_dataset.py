@@ -2,12 +2,13 @@ import os
 import random
 from torch.utils.data import Dataset
 from PIL import Image
+from PIL import ImageFile
 import numpy as np
 from datasets.data_io import get_transform, read_all_lines
 import pickle
 from datasets.warp_ops import *
 import torch
-Image.LOAD_TRUNCATED_IMAGES = True
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class KITTIDataset(Dataset):
     def __init__(self, datapath, list_filename, training, crop_width, crop_height, test_crop_width, test_crop_height):
