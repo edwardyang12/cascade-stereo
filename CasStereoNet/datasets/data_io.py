@@ -3,12 +3,12 @@ import re
 import torchvision.transforms as transforms
 
 
-def get_transform():
+def get_transform(color_jitter):
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
 
     return transforms.Compose([
-        transforms.ColorJitter(brightness=1, contrast=1, saturation=1),
+        transforms.ColorJitter.get_params(color_jitter.brightness, color_jitter.contrast, color_jitter.saturation),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])

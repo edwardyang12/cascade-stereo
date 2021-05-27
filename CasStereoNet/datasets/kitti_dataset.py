@@ -111,8 +111,11 @@ class KITTIDataset(Dataset):
             disparity_L = disparity_L[y1:y1 + crop_h, x1:x1 + crop_w]
             disparity_R = disparity_R[y1:y1 + crop_h, x1:x1 + crop_w]
 
+
             # to tensor, normalize
-            processed = get_transform()
+
+            color_jitter = transforms.ColorJitter(brightness=1, contrast=1, saturation=1)
+            processed = get_transform(color_jitter)
             left_img = processed(left_img)
             right_img = processed(right_img)
 
@@ -123,6 +126,7 @@ class KITTIDataset(Dataset):
             w, h = left_img.size
 
             # normalize
+            color_jitter = transforms.ColorJitter(brightness=1, contrast=1, saturation=1)
             processed = get_transform()
             left_img = processed(left_img).numpy()
             right_img = processed(right_img).numpy()
