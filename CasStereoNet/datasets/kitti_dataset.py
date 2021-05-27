@@ -8,6 +8,7 @@ from datasets.data_io import get_transform, read_all_lines
 import pickle
 from datasets.warp_ops import *
 import torch
+import torchvision.transforms as transforms
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class KITTIDataset(Dataset):
