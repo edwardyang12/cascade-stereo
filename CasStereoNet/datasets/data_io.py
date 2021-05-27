@@ -8,7 +8,7 @@ def get_transform(color_jitter):
     std = [0.229, 0.224, 0.225]
 
     return transforms.Compose([
-        transforms.ColorJitter.get_params(color_jitter.brightness, color_jitter.contrast, color_jitter.saturation),
+        transforms.ColorJitter.get_params(color_jitter.brightness, color_jitter.contrast, color_jitter.saturation, color_jitter.hue),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])
