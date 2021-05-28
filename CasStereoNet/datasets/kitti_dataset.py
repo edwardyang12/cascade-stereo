@@ -127,7 +127,7 @@ class KITTIDataset(Dataset):
             w, h = left_img.size
 
             # normalize
-            color_jitter = transforms.ColorJitter(brightness=1, contrast=1, saturation=1)
+            color_jitter = transforms.ColorJitter(brightness=0, contrast=0, saturation=0)
             processed = get_transform(color_jitter)
             left_img = processed(left_img).numpy()
             right_img = processed(right_img).numpy()
