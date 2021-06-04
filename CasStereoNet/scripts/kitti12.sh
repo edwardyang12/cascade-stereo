@@ -10,8 +10,8 @@ fi
 
 DATAPATH="/cephfs/datasets/iccv_pnp/real_data_v9/"
 pip install --upgrade pip setuptools wheel
-pip install -r /cephfs/jianyu/mtcaseval/requirements.txt
-python -m torch.distributed.launch --nproc_per_node=1 /cephfs/jianyu/mtcaseval/CasStereoNet/main.py --dataset kitti \
+pip install -r /cephfs/jianyu/mt_real_eval/requirements.txt
+python -m torch.distributed.launch --nproc_per_node=1 /cephfs/jianyu/mt_real_eval/CasStereoNet/main.py --dataset kitti \
     --datapath /cephfs/datasets/iccv_pnp/real_data_v9/ --trainlist /cephfs/datasets/iccv_pnp/real_data_v9/test_list.txt --testlist /cephfs/datasets/iccv_pnp/real_data_v9/test_list.txt \
     --test_datapath /cephfs/datasets/iccv_pnp/real_data_v9/ --test_dataset kitti \
     --epochs 300 --lrepochs "200:10" \
