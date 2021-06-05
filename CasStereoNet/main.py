@@ -391,7 +391,7 @@ def test_sample(sample, compute_metrics=True):
     #print(dispgt.shape)
     maskest = (dispgt < args.maxdisp) & (dispgt > 0)
 
-    maskest2 = (dispest == 0)
+    maskest2 = (depest == 0)
     depest = np.divide(f*b, depest)
     depest[maskest2] = 0
     #print(depest.dtype, dep_gt.dtype, depest.shape, dep_gt.shape)
