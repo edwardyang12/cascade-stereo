@@ -391,11 +391,12 @@ def test_sample(sample, compute_metrics=True):
     #print(dispgt.shape)
     maskest = (dispgt < args.maxdisp) & (dispgt > 0)
 
+    maskest2 = (dispest == 0)
     depest = np.divide(f*b, depest)
-
+    depest[maskest2] = 0
     #print(depest.dtype, dep_gt.dtype, depest.shape, dep_gt.shape)
     dep_err_map = np.asarray(depest) - np.asarray(dep_gt[0])
-    dep_err = np.linalg.norm(dep_err_map[maskest])
+    dep_err = np.linalg.norm(dep_err_map[maskest])/np.sum(maskest)
 
     dep_2 = np.sum(dep_err_map[maskest] > 2)/518400
     dep_4 = np.sum(dep_err_map[maskest] > 4)/518400
