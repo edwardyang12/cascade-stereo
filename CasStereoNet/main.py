@@ -388,7 +388,7 @@ def test_sample(sample, compute_metrics=True):
     depest = depest[228:,:960]
     dispgt = disp_gt.cpu().numpy()[0]
     dispgt = dispgt[228:,:960]
-    label = label.cpu().numpy()[0]
+    label = label[0].cpu().numpy()[0]
     print(label.shape)
     #print(dispgt.shape)
     maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (label != 18)
