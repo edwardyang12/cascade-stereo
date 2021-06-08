@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 from PIL import ImageFile
 import numpy as np
-from datasets.data_io import get_transform_train, get_transform_test, read_all_lines
+from datasets.data_io import get_transform_train, get_transform_test, get_transform_img, read_all_lines
 import pickle
 from datasets.warp_ops import *
 import torch
@@ -131,9 +131,10 @@ class KITTIDataset(Dataset):
             # normalize
             ##color_jitter = transforms.ColorJitter(brightness=0, contrast=0, saturation=0)
             processed = get_transform_test()
+            processedimg = get_transform_img()
             left_img = processed(left_img).numpy()
             right_img = processed(right_img).numpy()
-
+            label = processedimg(label).numpy()
             # pad to size 1248x384
             top_pad = self.test_crop_height - h
             right_pad = self.test_crop_width - w

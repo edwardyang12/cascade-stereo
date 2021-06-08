@@ -22,6 +22,11 @@ def get_transform_test():
         transforms.Normalize(mean=mean, std=std)
     ])
 
+def get_transform_img():
+    return transforms.Compose([
+        transforms.ToTensor()
+    ])
+
 
 # read all lines in a file
 def read_all_lines(filename):
