@@ -218,6 +218,8 @@ def train():
 
         # training
         for batch_idx, sample in enumerate(TrainImgLoader):
+            if batch_idx > 5:
+                break
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
             start_time = time.time()
             do_summary = global_step % args.summary_freq == 0
@@ -393,7 +395,7 @@ def test_sample(sample, compute_metrics=True):
     #print(dispgt.shape)
     maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (label != 18)
     #print("mask:", np.sum(maskest))
-    print("back:", np.sum(label == 18))
+    #print("back:", np.sum(label == 18))
     maskest2 = (depest == 0)
     depest = np.divide(f*b, depest)
     depest[maskest2] = 0

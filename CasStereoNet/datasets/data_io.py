@@ -9,6 +9,7 @@ def get_transform_train():
 
     return transforms.Compose([
         transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0, hue=0),
+        transforms.GaussianBlur(3,(0.1,2.0))
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])
