@@ -44,9 +44,10 @@ class KITTIDataset(Dataset):
             return pickle.load(f)
 
 
-    def load_image(self, filename):
+    def load_image(self, filename, half):
         img = Image.open(filename).convert('RGB')
-        #img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
+        if half:
+            img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
         return img
 
     def load_disp(self, filename_L, filename_R, metafile):
@@ -79,9 +80,9 @@ class KITTIDataset(Dataset):
 
     def __getitem__(self, index):
 
-        left_img = self.load_image(os.path.join(self.datapath, self.left_filenames[index]))
-        right_img = self.load_image(os.path.join(self.datapath, self.right_filenames[index]))
-        label = self.load_image(os.path.join(self.datapath, self.label[index]))
+        left_img = self.load_image(os.path.join(self.datapath, self.left_filenames[index]), False)
+        right_img = self.load_image(os.path.join(self.datapath, self.right_filenames[index]), False)
+        label = self.load_image(os.path.join(self.datapath, self.label[index]), True)
 
 
         if self.disp_filenames_L:  # has disparity ground truth
