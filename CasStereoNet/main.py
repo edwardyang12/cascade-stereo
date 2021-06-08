@@ -392,7 +392,8 @@ def test_sample(sample, compute_metrics=True):
     print(label)
     #print(dispgt.shape)
     maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (label != 18)
-    print(np.sum(label == 18))
+    print("mask:", np.sum(maskest))
+    print("back:", np.sum(label == 18))
     maskest2 = (depest == 0)
     depest = np.divide(f*b, depest)
     depest[maskest2] = 0
