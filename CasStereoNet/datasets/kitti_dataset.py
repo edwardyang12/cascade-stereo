@@ -137,9 +137,9 @@ class KITTIDataset(Dataset):
             processedimg = get_transform_img()
             left_img = processed(left_img).numpy()
             right_img = processed(right_img).numpy()
-            print("before", np.array(label))
+            #print("before", np.array(label))
             label = processedimg(label).numpy()
-            print("after", label)
+            #print("after", label)
             # pad to size 1248x384
             top_pad = self.test_crop_height - h
             right_pad = self.test_crop_width - w

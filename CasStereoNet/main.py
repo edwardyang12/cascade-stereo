@@ -389,10 +389,10 @@ def test_sample(sample, compute_metrics=True):
     dispgt = disp_gt.cpu().numpy()[0]
     dispgt = dispgt[228:,:960]
     label = label[0].cpu().numpy()[0]
-    print(label)
+    #print(label)
     #print(dispgt.shape)
     maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (label != 18)
-    print("mask:", np.sum(maskest))
+    #print("mask:", np.sum(maskest))
     print("back:", np.sum(label == 18))
     maskest2 = (depest == 0)
     depest = np.divide(f*b, depest)
