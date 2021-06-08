@@ -46,8 +46,6 @@ class KITTIDataset(Dataset):
 
     def load_image(self, filename, half):
         img = Image.open(filename).convert('RGB')
-        if not rgb:
-            img = Image.open(filename).convert('I;16')
         if half:
             img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
         return img
