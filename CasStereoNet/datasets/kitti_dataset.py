@@ -36,7 +36,7 @@ class KITTIDataset(Dataset):
         disp_images_L = [os.path.join(x,"depthL.png") for x in lines]
         disp_images_R = [os.path.join(x,"depthR.png") for x in lines]
         meta = [os.path.join(x,"meta.pkl") for x in lines]
-        return left_images, right_images, label_images, disp_images_L, disp_images_R, meta
+        return left_images, right_images, disp_images_L, disp_images_R, meta, label_images
 
 
     def load_pickle(self, filename):
@@ -81,7 +81,7 @@ class KITTIDataset(Dataset):
 
         left_img = self.load_image(os.path.join(self.datapath, self.left_filenames[index]))
         right_img = self.load_image(os.path.join(self.datapath, self.right_filenames[index]))
-        label = self.load_image(os.path.join(self.datapath, self.right_filenames[index]))
+        label = self.load_image(os.path.join(self.datapath, self.label[index]))
 
 
         if self.disp_filenames_L:  # has disparity ground truth
