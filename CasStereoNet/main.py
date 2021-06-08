@@ -357,7 +357,7 @@ def test_sample(sample, compute_metrics=True):
         model_eval = model
     model_eval.eval()
 
-    imgL, imgR, disp_gt, dep_gt, f, b = sample['left'], sample['right'], sample['disparity'], sample['depth'], sample['f'], sample['baseline']
+    imgL, imgR, disp_gt, dep_gt, f, b, label = sample['left'], sample['right'], sample['disparity'], sample['depth'], sample['f'], sample['baseline'], sample['label']
     imgL = imgL.cuda()
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
@@ -389,7 +389,7 @@ def test_sample(sample, compute_metrics=True):
     dispgt = disp_gt.cpu().numpy()[0]
     dispgt = dispgt[228:,:960]
     #print(dispgt.shape)
-    maskest = (dispgt < args.maxdisp) & (dispgt > 0)
+    maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (label != 18)
 
     maskest2 = (depest == 0)
     depest = np.divide(f*b, depest)
@@ -398,9 +398,9 @@ def test_sample(sample, compute_metrics=True):
     dep_err_map = np.asarray(depest) - np.asarray(dep_gt[0])
     dep_err = np.linalg.norm(dep_err_map[maskest])/np.sum(maskest)
 
-    dep_2 = np.sum(dep_err_map[maskest] > 2)/518400
-    dep_4 = np.sum(dep_err_map[maskest] > 4)/518400
-    dep_8 = np.sum(dep_err_map[maskest] > 8)/518400
+    dep_2 = np.sum(dep_err_map[maskest] > 2)/np.sum(maskest)
+    dep_4 = np.sum(dep_err_map[maskest] > 4)/np.sum(maskest)
+    dep_8 = np.sum(dep_err_map[maskest] > 8)/np.sum(maskest)
 
 
 
@@ -411,8 +411,8 @@ def test_sample(sample, compute_metrics=True):
     disp_ests_gt_bad = disp_ests_gt_bad[228:,:960]
 
     #print(disp_ests_bad.shape, disp_ests_gt_bad.shape)
-    bad1 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad) > 1)/518400
-    bad2 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad) > 2)/518400
+    bad1 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad)[maskest] > 1)/np.sum(maskest)
+    bad2 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad)[maskest] > 2)/np.sum(maskest)
 
     dep_gt = disp_gt
 

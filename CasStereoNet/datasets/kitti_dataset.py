@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 from PIL import ImageFile
 import numpy as np
-from datasets.data_io import get_transform, read_all_lines
+from datasets.data_io import get_transform_train, get_transform_test, read_all_lines
 import pickle
 from datasets.warp_ops import *
 import torch
@@ -15,7 +15,7 @@ class KITTIDataset(Dataset):
     def __init__(self, datapath, list_filename, training, crop_width, crop_height, test_crop_width, test_crop_height):
         self.datapath = datapath
         self.training = training
-        self.left_filenames, self.right_filenames, self.disp_filenames_L, self.disp_filenames_R, self.meta_filenames = self.load_path(list_filename)
+        self.left_filenames, self.right_filenames, self.disp_filenames_L, self.disp_filenames_R, self.meta_filenames, self.label = self.load_path(list_filename)
 
         self.crop_width = crop_width
         self.crop_height = crop_height
@@ -32,10 +32,11 @@ class KITTIDataset(Dataset):
         left_images = [os.path.join(x,"0128_irL_denoised_half.png") for x in lines]
         right_images = [os.path.join(x,"0128_irR_denoised_half.png") for x in lines]
 
+        label_images = [os.path.join(x,"label.png") for x in lines]
         disp_images_L = [os.path.join(x,"depthL.png") for x in lines]
         disp_images_R = [os.path.join(x,"depthR.png") for x in lines]
         meta = [os.path.join(x,"meta.pkl") for x in lines]
-        return left_images, right_images, disp_images_L, disp_images_R, meta
+        return left_images, right_images, label_images, disp_images_L, disp_images_R, meta
 
 
     def load_pickle(self, filename):
@@ -80,6 +81,7 @@ class KITTIDataset(Dataset):
 
         left_img = self.load_image(os.path.join(self.datapath, self.left_filenames[index]))
         right_img = self.load_image(os.path.join(self.datapath, self.right_filenames[index]))
+        label = self.load_image(os.path.join(self.datapath, self.right_filenames[index]))
 
 
         if self.disp_filenames_L:  # has disparity ground truth
@@ -115,8 +117,8 @@ class KITTIDataset(Dataset):
 
             # to tensor, normalize
 
-            color_jitter = transforms.ColorJitter(brightness=1, contrast=1, saturation=1)
-            processed = get_transform(color_jitter)
+            #color_jitter = transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0, hue=0)
+            processed = get_transform_train()
             left_img = processed(left_img)
             right_img = processed(right_img)
 
@@ -127,8 +129,8 @@ class KITTIDataset(Dataset):
             w, h = left_img.size
 
             # normalize
-            color_jitter = transforms.ColorJitter(brightness=0, contrast=0, saturation=0)
-            processed = get_transform(color_jitter)
+            ##color_jitter = transforms.ColorJitter(brightness=0, contrast=0, saturation=0)
+            processed = get_transform_test()
             left_img = processed(left_img).numpy()
             right_img = processed(right_img).numpy()
 
@@ -153,6 +155,7 @@ class KITTIDataset(Dataset):
                         "right_pad": right_pad,
                         "depth": depthL,
                         "baseline": b,
+                        "label": label,
                         "f": f}
             else:
                 return {"left": left_img,
