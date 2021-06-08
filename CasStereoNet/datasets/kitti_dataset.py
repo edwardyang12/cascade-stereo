@@ -70,8 +70,8 @@ class KITTIDataset(Dataset):
         data_R_mask = (data_R < 0)
         data_L[data_L_mask] = 0.0
         data_R[data_R_mask] = 0.0
-        if not (torch.all(torch.tensor(data_L) >= 0) and torch.all(torch.tensor(data_R) >= 0)):
-            print("neg found")
+        #if not (torch.all(torch.tensor(data_L) >= 0) and torch.all(torch.tensor(data_R) >= 0)):
+        #    print("neg found")
         #print(meta)
         el = meta['extrinsic_l'][:3,3]
         er = meta['extrinsic_r'][:3,3]
@@ -139,7 +139,7 @@ class KITTIDataset(Dataset):
                     "right": right_img,
                     "disparity": disparity_R}
         else:
-            print(torch.all(torch.tensor(disparity_R) >= 0))
+            #print(torch.all(torch.tensor(disparity_R) >= 0))
             w, h = left_img.size
 
             # normalize
