@@ -5,5 +5,5 @@ pillow
 tensorboardX
 plyfile
 pynvrtc
-cupy-cuda100
+cupy-cuda111
 opencv-python-headless
