@@ -65,7 +65,8 @@ class KITTIDataset(Dataset):
         img_R = img_R.resize((int(img_R.size[0]/2),int(img_R.size[1]/2)))
         data_L = np.asarray(img_L,dtype=np.float32)
         data_R = np.asarray(img_R,dtype=np.float32)
-
+        if not (torch.all(torch.tensor(data_L) >= 0) and torch.all(torch.tensor(data_R) >= 0)):
+            print("neg found")
         #print(meta)
         el = meta['extrinsic_l'][:3,3]
         er = meta['extrinsic_r'][:3,3]
