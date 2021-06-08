@@ -133,7 +133,7 @@ class KITTIDataset(Dataset):
                     "right": right_img,
                     "disparity": disparity_R}
         else:
-            print(torch.all(disparity_R >= 0))
+            print(torch.all(torch.tensor(disparity_R) >= 0))
             w, h = left_img.size
 
             # normalize
