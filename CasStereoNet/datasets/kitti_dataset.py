@@ -65,6 +65,11 @@ class KITTIDataset(Dataset):
         img_R = img_R.resize((int(img_R.size[0]/2),int(img_R.size[1]/2)))
         data_L = np.asarray(img_L,dtype=np.float32)
         data_R = np.asarray(img_R,dtype=np.float32)
+
+        data_L_mask = (data_L < 0)
+        data_R_mask = (data_R < 0)
+        data_L[data_L_mask] = 0.0
+        data_R[data_R_mask] = 0.0
         if not (torch.all(torch.tensor(data_L) >= 0) and torch.all(torch.tensor(data_R) >= 0)):
             print("neg found")
         #print(meta)
