@@ -382,8 +382,8 @@ def test_sample(sample, compute_metrics=True):
     print(torch.max(disp_gt_t), torch.max(disp_gt_t.int()), torch.min(disp_gt_t), torch.min(disp_gt_t.int()))
     print(torch.max(label), torch.max(disp_gt_rgb.int()), torch.min(label), torch.min(disp_gt_rgb.int()))
     label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
-    disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
-
+    #disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
+    disparity_L_from_R = torch.ones((768,1248))
 
 
 
