@@ -378,7 +378,7 @@ def test_sample(sample, compute_metrics=True):
     #print(disp_gt.shape)
     disp_gt_t = disp_gt.reshape((1,1,768,1248))
     disp_gt_rgb = disp_rgb.reshape((1,1,540,960)).cuda()
-    label = label.reshape((1,1,540,960)).cuda()
+    #label = label.reshape((1,1,540,960)).cuda()
     print(torch.max(disp_gt_t), torch.max(disp_gt_t.int()), torch.min(disp_gt_t), torch.min(disp_gt_t.int()))
     print(torch.max(label), torch.max(disp_gt_rgb.int()), torch.min(label), torch.min(disp_gt_rgb.int()))
 
@@ -412,10 +412,10 @@ def test_sample(sample, compute_metrics=True):
     dispgt = disp_gt.cpu().numpy()[0]
     dispgt = dispgt[228:,:960]
 
-    label_rgb = warp(label, disp_gt_rgb)
-    label_rgb = label_rgb.reshape((1,540,960))
-    label = label_rgb.cpu().numpy()[0]
-    #print(label)
+    #label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
+    #label_rgb = label_rgb.reshape((1,540,960))
+    label = label.cpu().numpy()[0]
+    print(label.shape)
     #print(dispgt.shape)
     maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (label != 18)
     #print("mask:", np.sum(maskest))
@@ -457,8 +457,8 @@ def test_sample(sample, compute_metrics=True):
     scalar_outputs["dep4"] = [dep_4]
     scalar_outputs["dep8"] = [dep_8]
 
-    label_rgb = label_rgb.float()
-    image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR, "label": label_rgb}
+    #label_rgb = label_rgb.float()
+    image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR, "label": label}
 
     if compute_metrics:
         image_outputs["errormap"] = [disp_error_image_func.apply(disp_est, disp_gt) for disp_est in disp_ests]
@@ -494,8 +494,6 @@ def test_all():
         save_scalars(logger, 'fulltest', avg_test_scalars, len(TestImgLoader))
         print("avg_test_scalars", avg_test_scalars)
 
-def warp(ori, disp):
-    return apply_disparity_cu(ori, disp.int())
 
 if __name__ == '__main__':
     if args.mode == 'train':

@@ -9,6 +9,7 @@ import pickle
 from datasets.warp_ops import *
 import torch
 import torchvision.transforms as transforms
+from datasets.warp_ops import *
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class KITTIDataset(Dataset):
@@ -109,6 +110,8 @@ class KITTIDataset(Dataset):
         label = self.load_label(os.path.join(self.datapath, self.label[index]), True)
 
 
+
+
         if self.disp_filenames_L:  # has disparity ground truth
             path = None
             if self.issim:
@@ -167,7 +170,15 @@ class KITTIDataset(Dataset):
             left_img = processed(left_img).numpy()
             right_img = processed(right_img).numpy()
             #print("before", np.array(label))
+
+
             label = processedimg(label).numpy()
+
+            label = torch.tensor(label).reshape((1,1,540,960)).cuda()
+            disp_gt_rgb = disparity.reshape((1,1,540,960)).cuda()
+            label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
+            label_rgb = label_rgb.reshape((1,540,960))
+            label = label_rgb.cpu().numpy()[0].float()
             #print("after", label)
             # pad to size 1248x384
             top_pad = self.test_crop_height - h
