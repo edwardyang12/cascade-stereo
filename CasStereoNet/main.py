@@ -188,7 +188,7 @@ else:
 sim = True
 if args.sim:
     sim = True
-else if args.real:
+elif args.real:
     sim = False
 
 StereoDataset = __datasets__[args.dataset]
