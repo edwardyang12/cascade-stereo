@@ -412,7 +412,7 @@ def test_sample(sample, compute_metrics=True):
     dispgt = disp_gt.cpu().numpy()[0]
     dispgt = dispgt[228:,:960]
 
-    label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
+    label_rgb = warp(label, disp_gt_rgb)
     label_rgb = label_rgb.reshape((1,540,960))
     label = label_rgb.cpu().numpy()[0]
     #print(label)
@@ -493,6 +493,9 @@ def test_all():
         avg_test_scalars = avg_test_scalars.mean()
         save_scalars(logger, 'fulltest', avg_test_scalars, len(TestImgLoader))
         print("avg_test_scalars", avg_test_scalars)
+
+def warp(ori, disp):
+    return apply_disparity_cu(ori, disp.int())
 
 if __name__ == '__main__':
     if args.mode == 'train':
