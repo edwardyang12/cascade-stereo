@@ -8,7 +8,6 @@ from datasets.data_io import get_transform_train, get_transform_test, get_transf
 import pickle
 from datasets.warp_ops import *
 import torch
-torch.multiprocessing.set_start_method('spawn')
 import torchvision.transforms as transforms
 from datasets.warp_ops import *
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -175,11 +174,7 @@ class KITTIDataset(Dataset):
 
             label = processedimg(label).numpy()
 
-            label = torch.tensor(label).reshape((1,1,540,960)).cuda()
-            disp_gt_rgb = disparity.reshape((1,1,540,960)).cuda()
-            label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
-            label_rgb = label_rgb.reshape((1,540,960))
-            label = label_rgb.cpu().numpy()[0].float()
+            
             #print("after", label)
             # pad to size 1248x384
             top_pad = self.test_crop_height - h
