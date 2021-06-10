@@ -8,6 +8,7 @@ from datasets.data_io import get_transform_train, get_transform_test, get_transf
 import pickle
 from datasets.warp_ops import *
 import torch
+torch.multiprocessing.set_start_method('spawn')
 import torchvision.transforms as transforms
 from datasets.warp_ops import *
 ImageFile.LOAD_TRUNCATED_IMAGES = True
