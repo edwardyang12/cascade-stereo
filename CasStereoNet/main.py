@@ -385,10 +385,10 @@ def test_sample(sample, compute_metrics=True):
     label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
 
 
-    disp_gt = disparity_L_from_R.reshape((768,1248))
+    disp_gt = disparity_L_from_R.reshape((768,1248)).cpu().numpy()
     label_rgb = label_rgb.reshape((1,540,960)).cuda()
 
-    disp_gt = cv2.medianBlur(disp_gt.cpu().numpy(),3)
+    disp_gt = cv2.medianBlur(disp_gt,3)
 
     disp_gt = torch.from_numpy(disp_gt).cuda().reshape((1,768,1248))
 
