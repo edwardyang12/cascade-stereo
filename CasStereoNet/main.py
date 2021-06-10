@@ -381,14 +381,14 @@ def test_sample(sample, compute_metrics=True):
     label = label.reshape((1,1,540,960)).cuda()
     print(torch.max(disp_gt_t), torch.max(disp_gt_t.int()), torch.min(disp_gt_t), torch.min(disp_gt_t.int()))
     print(torch.max(label), torch.max(disp_gt_rgb.int()), torch.min(label), torch.min(disp_gt_rgb.int()))
-    label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
-    #disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
-    disparity_L_from_R = torch.ones((768,1248))
+
+    disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
+    #disparity_L_from_R = torch.ones((768,1248))
 
 
 
     disp_gt = disparity_L_from_R.reshape((768,1248)).cpu().numpy()
-    label_rgb = label_rgb.reshape((1,540,960)).cuda()
+    #label_rgb = label_rgb.reshape((1,540,960)).cuda()
 
     disp_gt = cv2.medianBlur(disp_gt,3)
 
@@ -411,7 +411,10 @@ def test_sample(sample, compute_metrics=True):
     depest = depest[228:,:960]
     dispgt = disp_gt.cpu().numpy()[0]
     dispgt = dispgt[228:,:960]
-    label = label_rgb.cpu().numpy()[0]
+    
+    label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
+    label_rgb = label_rgb.reshape((540,960))
+    label = label_rgb.cpu().numpy()
     #print(label)
     #print(dispgt.shape)
     maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (label != 18)
