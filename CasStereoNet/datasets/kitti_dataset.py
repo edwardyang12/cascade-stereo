@@ -117,6 +117,7 @@ class KITTIDataset(Dataset):
                 path = self.depthpath
             b, br, f, depthL, depthR, depth, disparity_L, disparity_R, disparity = self.load_disp(os.path.join(path, self.disp_filenames_L[index]), \
                                                     os.path.join(path, self.disp_filenames_R[index]), \
+                                                    os.path.join(path, self.disp_filenames[index]), \
                                                     os.path.join(path, self.meta_filenames[index]))
             #print(type(disparity_R), disparity_R.shape)
             #disparity_R_t = torch.tensor(disparity_R)
