@@ -404,14 +404,14 @@ def test_sample(sample, compute_metrics=True):
     disp_ests = [outputs_stage["pred"]]
 
     scalar_outputs = {"loss": loss}
-    image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR, "label": label_rgb}
+    #image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR, "label": label_rgb}
 
 
     depest = disp_ests[0].cpu().numpy()[0]
     depest = depest[228:,:960]
     dispgt = disp_gt.cpu().numpy()[0]
     dispgt = dispgt[228:,:960]
-    
+
     label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
     label_rgb = label_rgb.reshape((540,960))
     label = label_rgb.cpu().numpy()
@@ -456,6 +456,8 @@ def test_sample(sample, compute_metrics=True):
     scalar_outputs["dep2"] = [dep_2]
     scalar_outputs["dep4"] = [dep_4]
     scalar_outputs["dep8"] = [dep_8]
+
+    image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR, "label": label_rgb}
 
     if compute_metrics:
         image_outputs["errormap"] = [disp_error_image_func.apply(disp_est, disp_gt) for disp_est in disp_ests]
