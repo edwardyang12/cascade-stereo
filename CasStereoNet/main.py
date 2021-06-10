@@ -457,6 +457,7 @@ def test_sample(sample, compute_metrics=True):
     scalar_outputs["dep4"] = [dep_4]
     scalar_outputs["dep8"] = [dep_8]
 
+    label_rgb = label_rgb.float()
     image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR, "label": label_rgb}
 
     if compute_metrics:
