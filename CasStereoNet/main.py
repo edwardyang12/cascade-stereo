@@ -78,7 +78,7 @@ parser.add_argument('--keep-batchnorm-fp32', type=str, default=None)
 parser.add_argument('--loss-scale', type=str, default=None)
 
 parser.add_argument('--sim', action='store_true', help='sim data')
-parsar.add_argument('--real', action='store_true', help='real data')
+parser.add_argument('--real', action='store_true', help='real data')
 
 
 # parse arguments
