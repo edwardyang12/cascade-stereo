@@ -12,10 +12,11 @@ import torchvision.transforms as transforms
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class KITTIDataset(Dataset):
-    def __init__(self, datapath, list_filename, training, crop_width, crop_height, test_crop_width, test_crop_height):
+    def __init__(self, datapath, depthpath, list_filename, training, crop_width, crop_height, test_crop_width, test_crop_height, sim):
         self.datapath = datapath
         self.training = training
-        self.left_filenames, self.right_filenames, self.disp_filenames_L, self.disp_filenames_R, self.meta_filenames, self.label = self.load_path(list_filename)
+        self.issim = sim
+        self.left_filenames, self.right_filenames, self.disp_filenames_L, self.disp_filenames_R, self.disp_filenames, self.meta_filenames, self.label = self.load_path(list_filename)
 
         self.crop_width = crop_width
         self.crop_height = crop_height
@@ -35,8 +36,9 @@ class KITTIDataset(Dataset):
         label_images = [os.path.join(x,"label.png") for x in lines]
         disp_images_L = [os.path.join(x,"depthL.png") for x in lines]
         disp_images_R = [os.path.join(x,"depthR.png") for x in lines]
+        disp_images = [os.path.join(x,"depth.png") for x in lines]
         meta = [os.path.join(x,"meta.pkl") for x in lines]
-        return left_images, right_images, disp_images_L, disp_images_R, meta, label_images
+        return left_images, right_images, disp_images_L, disp_images_R, disp_images, meta, label_images
 
 
     def load_pickle(self, filename):
@@ -56,51 +58,66 @@ class KITTIDataset(Dataset):
             img = img.resize((int(img.size[0]/2),int(img.size[1]/2)), resample=Image.NEAREST)
         return img
 
-    def load_disp(self, filename_L, filename_R, metafile):
+    def load_disp(self, filename_L, filename_R, filename, metafile):
         img_L = Image.open(filename_L)
         img_R = Image.open(filename_R)
+        img = Image.open(filename)
         meta = self.load_pickle(metafile)
 
         img_L = img_L.resize((int(img_L.size[0]/2),int(img_L.size[1]/2)))
         img_R = img_R.resize((int(img_R.size[0]/2),int(img_R.size[1]/2)))
+        img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
         data_L = np.asarray(img_L,dtype=np.float32)
         data_R = np.asarray(img_R,dtype=np.float32)
+        data = np.asarray(img,dtype=np.float32)
 
         data_L_mask = (data_L < 0)
         data_R_mask = (data_R < 0)
+        data_mask = (data < 0)
         data_L[data_L_mask] = 0.0
         data_R[data_R_mask] = 0.0
+        data[data_mask] = 0.0
         #if not (torch.all(torch.tensor(data_L) >= 0) and torch.all(torch.tensor(data_R) >= 0)):
         #    print("neg found")
         #print(meta)
+        e = meta['extrinsic'][:3,3]
         el = meta['extrinsic_l'][:3,3]
         er = meta['extrinsic_r'][:3,3]
 
         b = np.linalg.norm(el-er)*1000
+        br = np.linalg.norm(el-e)*1000
         f = meta['intrinsic_r'][0][0]/2
 
         mask_l = (data_L == 0)
         mask_r = (data_R == 0)
+        mask = (data == 0)
         dis_L = b*f/data_L
         dis_L[mask_l] = 0
         dis_R = b*f/data_R
         dis_R[mask_r] = 0
-        return b, f, data_L, data_R, dis_L, dis_R
+        dis_rgb = br*f/data
+        dis_rgb[mask] = 0
+        return b, br, f, data_L, data_R, data, dis_L, dis_R, dis_rgb
 
     def __len__(self):
         return len(self.left_filenames)
 
     def __getitem__(self, index):
 
-        left_img = self.load_image(os.path.join(self.datapath, self.left_filenames[index]), False)
-        right_img = self.load_image(os.path.join(self.datapath, self.right_filenames[index]), False)
+        left_img = self.load_image(os.path.join(self.datapath, self.left_filenames[index]), not self.issim)
+        right_img = self.load_image(os.path.join(self.datapath, self.right_filenames[index]), not self.issim)
         label = self.load_label(os.path.join(self.datapath, self.label[index]), True)
 
 
         if self.disp_filenames_L:  # has disparity ground truth
-            b, f, depthL, depthR, disparity_L, disparity_R = self.load_disp(os.path.join(self.datapath, self.disp_filenames_L[index]), \
-                                                    os.path.join(self.datapath, self.disp_filenames_R[index]), \
-                                                    os.path.join(self.datapath, self.meta_filenames[index]))
+            path = None
+            if self.issim:
+                path = self.datapath
+            else:
+                path = self.depthpath
+            b, br, f, depthL, depthR, depth, disparity_L, disparity_R, disparity = self.load_disp(os.path.join(path, self.disp_filenames_L[index]), \
+                                                    os.path.join(path, self.disp_filenames_R[index]), \
+                                                    os.path.join(path, self.meta_filenames[index]))
             #print(type(disparity_R), disparity_R.shape)
             #disparity_R_t = torch.tensor(disparity_R)
             #disparity_R_ti = torch.tensor(disparity_R, dtype=torch.int)
@@ -168,10 +185,12 @@ class KITTIDataset(Dataset):
                 return {"left": left_img,
                         "right": right_img,
                         "disparity": disparity_R,
+                        "disparity_rgb": disparity,
                         "top_pad": top_pad,
                         "right_pad": right_pad,
                         "depth": depthL,
                         "baseline": b,
+                        "baseline_rgb": br,
                         "label": label,
                         "f": f}
             else:

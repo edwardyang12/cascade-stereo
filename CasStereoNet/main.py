@@ -29,6 +29,7 @@ parser.add_argument('--maxdisp', type=int, default=192, help='maximum disparity'
 
 parser.add_argument('--dataset', required=True, help='dataset name', choices=__datasets__.keys())
 parser.add_argument('--datapath', required=True, help='data path')
+parsar.add_argument('--depthpath', required=True, help='depth path')
 parser.add_argument('--test_dataset', required=True, help='dataset name', choices=__datasets__.keys())
 parser.add_argument('--test_datapath', required=True, help='data path')
 parser.add_argument('--trainlist', required=True, help='training list')
@@ -75,6 +76,9 @@ parser.add_argument('--sync_bn', action='store_true',help='enabling apex sync BN
 parser.add_argument('--opt-level', type=str, default="O0")
 parser.add_argument('--keep-batchnorm-fp32', type=str, default=None)
 parser.add_argument('--loss-scale', type=str, default=None)
+
+parser.add_argument('--sim', action='store_true', help='sim data')
+parsar.add_argument('--real', action='store_true', help='real data')
 
 
 # parse arguments
@@ -181,14 +185,22 @@ else:
 
 
 # dataset, dataloader
+sim = True
+if args.sim:
+    sim = True
+else if args.real:
+    sim = False
+
 StereoDataset = __datasets__[args.dataset]
 Test_StereoDataset = __datasets__[args.test_dataset]
-train_dataset = StereoDataset(args.datapath, args.trainlist, True,
+train_dataset = StereoDataset(args.datapath, args.depthpath, args.trainlist, True,
                               crop_height=args.crop_height, crop_width=args.crop_width,
-                              test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width)
-test_dataset = Test_StereoDataset(args.test_datapath, args.testlist, False,
+                              test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width,
+                              sim=sim)
+test_dataset = Test_StereoDataset(args.test_datapath, args.depthpath, args.testlist, False,
                              crop_height=args.crop_height, crop_width=args.crop_width,
-                             test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width)
+                             test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width,
+                             sim=sim)
 if is_distributed:
     train_sampler = torch.utils.data.DistributedSampler(train_dataset, num_replicas=dist.get_world_size(),
                                                         rank=dist.get_rank())
@@ -358,20 +370,26 @@ def test_sample(sample, compute_metrics=True):
         model_eval = model
     model_eval.eval()
 
-    imgL, imgR, disp_gt, dep_gt, f, b, label = sample['left'], sample['right'], sample['disparity'], sample['depth'], sample['f'], sample['baseline'], sample['label']
+    imgL, imgR, disp_gt, disp_rgb, dep_gt, f, b, label = sample['left'], sample['right'], sample['disparity'], sample['disparity_rgb'], sample['depth'], sample['f'], sample['baseline'], sample['label']
     imgL = imgL.cuda()
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
 
     #print(disp_gt.shape)
     disp_gt_t = disp_gt.reshape((1,1,768,1248))
+    disp_gt_rgb = disp_rgb.reshape((1,1,540,960))
+    label = label.reshape((1,1,540,960))
     disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
+    label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
+
 
     disp_gt = disparity_L_from_R.reshape((768,1248))
+    label_rgb = label_rgb.reshape((1,540,960)).cuda()
 
     disp_gt = cv2.medianBlur(disp_gt.cpu().numpy(),3)
 
     disp_gt = torch.from_numpy(disp_gt).cuda().reshape((1,768,1248))
+
 
     outputs = model_eval(imgL, imgR)
 
@@ -382,14 +400,14 @@ def test_sample(sample, compute_metrics=True):
     disp_ests = [outputs_stage["pred"]]
 
     scalar_outputs = {"loss": loss}
-    image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR}
+    image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR, "label": label_rgb}
 
 
     depest = disp_ests[0].cpu().numpy()[0]
     depest = depest[228:,:960]
     dispgt = disp_gt.cpu().numpy()[0]
     dispgt = dispgt[228:,:960]
-    label = label[0].cpu().numpy()[0]
+    label = label_rgb.cpu().numpy()[0]
     #print(label)
     #print(dispgt.shape)
     maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (label != 18)
