@@ -29,7 +29,7 @@ parser.add_argument('--maxdisp', type=int, default=192, help='maximum disparity'
 
 parser.add_argument('--dataset', required=True, help='dataset name', choices=__datasets__.keys())
 parser.add_argument('--datapath', required=True, help='data path')
-parsar.add_argument('--depthpath', required=True, help='depth path')
+parser.add_argument('--depthpath', required=True, help='depth path')
 parser.add_argument('--test_dataset', required=True, help='dataset name', choices=__datasets__.keys())
 parser.add_argument('--test_datapath', required=True, help='data path')
 parser.add_argument('--trainlist', required=True, help='training list')
