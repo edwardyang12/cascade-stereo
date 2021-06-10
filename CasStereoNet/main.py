@@ -413,8 +413,8 @@ def test_sample(sample, compute_metrics=True):
     dispgt = dispgt[228:,:960]
 
     label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
-    label_rgb = label_rgb.reshape((540,960))
-    label = label_rgb.cpu().numpy()
+    label_rgb = label_rgb.reshape((1,540,960))
+    label = label_rgb.cpu().numpy()[0]
     #print(label)
     #print(dispgt.shape)
     maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (label != 18)
