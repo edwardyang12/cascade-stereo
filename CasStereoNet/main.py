@@ -377,7 +377,7 @@ def test_sample(sample, compute_metrics=True):
 
     #print(disp_gt.shape)
     disp_gt_t = disp_gt.reshape((1,1,768,1248))
-    disp_gt_rgb = disp_rgb.reshape((1,1,540,960))
+    disp_gt_rgb = disp_rgb.reshape((1,1,540,960)).cuda()
     label = label.reshape((1,1,540,960)).cuda()
     disparity_L_from_R = apply_disparity_cu(disp_gt_t, disp_gt_t.int())
     label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
