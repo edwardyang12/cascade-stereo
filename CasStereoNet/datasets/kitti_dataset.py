@@ -31,8 +31,16 @@ class KITTIDataset(Dataset):
 
     def load_path(self, list_filename):
         lines = read_all_lines(list_filename)
-        left_images = [os.path.join(x,"0128_irL_denoised_half.png") for x in lines]
-        right_images = [os.path.join(x,"0128_irR_denoised_half.png") for x in lines]
+        img_name_L = None
+        img_name_R = None
+        if self.issim:
+            img_name_L = "0128_irL_denoised_half.png"
+            img_name_R = "0128_irR_denoised_half.png"
+        else:
+            img_name_L = "1024_irL_real_1080.png"
+            img_name_R = "1024_irR_real_1080.png"
+        left_images = [os.path.join(x,img_name_L) for x in lines]
+        right_images = [os.path.join(x,img_name_R) for x in lines]
 
         label_images = [os.path.join(x,"label.png") for x in lines]
         disp_images_L = [os.path.join(x,"depthL.png") for x in lines]
@@ -174,7 +182,7 @@ class KITTIDataset(Dataset):
 
             label = processedimg(label).numpy()
 
-            
+
             #print("after", label)
             # pad to size 1248x384
             top_pad = self.test_crop_height - h
