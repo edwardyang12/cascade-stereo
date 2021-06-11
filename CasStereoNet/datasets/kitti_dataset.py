@@ -17,6 +17,7 @@ class KITTIDataset(Dataset):
         self.datapath = datapath
         self.training = training
         self.issim = sim
+        self.depthpath = depthpath
         self.left_filenames, self.right_filenames, self.disp_filenames_L, self.disp_filenames_R, self.disp_filenames, self.meta_filenames, self.label = self.load_path(list_filename)
 
         self.crop_width = crop_width
