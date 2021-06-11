@@ -416,7 +416,7 @@ def test_sample(sample, compute_metrics=True):
     #label_rgb = label_rgb.reshape((1,540,960))
     label = warp(label, disp_rgb)
     #label = label.cpu().numpy()[0]
-    print(label.shape)
+    #print(label.shape)
     #print(dispgt.shape)
     maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (label != 18)
     #print("mask:", np.sum(maskest))
