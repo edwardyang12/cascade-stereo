@@ -254,7 +254,8 @@ def train():
 
         # training
         for batch_idx, sample in enumerate(TrainImgLoader):
-
+            if batch_idx > 1100:
+                break
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
             start_time = time.time()
             do_summary = global_step % args.summary_freq == 0
@@ -286,6 +287,8 @@ def train():
             # testing
             avg_test_scalars = AverageMeterDict()
             for batch_idx, sample in enumerate(TestImgLoader):
+                if batch_idx > 150:
+                    break
                 global_step = len(TestImgLoader) * epoch_idx + batch_idx
                 start_time = time.time()
                 do_summary = global_step % args.test_summary_freq == 0
@@ -331,15 +334,18 @@ def train():
         if (epoch_idx % args.eval_freq == 0) or (epoch_idx == args.epochs - 1):
             # sim testing
             avg_test_scalars = AverageMeterDict()
+            text = 'test_sim ' + str(epoch_idx)
             for batch_idx, sample in enumerate(SimTestImgLoader):
-                global_step = len(SimTestImgLoader) * epoch_idx + batch_idx
+                if batch_idx > 150:
+                    break
+                #global_step = len(SimTestImgLoader) * epoch_idx + batch_idx
                 start_time = time.time()
                 do_summary = global_step % args.test_summary_freq == 0
                 loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=do_summary)
                 if (not is_distributed) or (dist.get_rank() == 0):
                     if do_summary:
-                        save_scalars(logger, 'test', scalar_outputs, global_step)
-                        save_images(logger, 'test', image_outputs, global_step)
+                        save_scalars(logger, text, scalar_outputs, batch_idx)
+                        save_images(logger, text, image_outputs, batch_idx)
                     avg_test_scalars.update(scalar_outputs)
                     del scalar_outputs, image_outputs
                     if batch_idx % args.log_freq == 0:
@@ -354,15 +360,18 @@ def train():
         if (epoch_idx % args.eval_freq == 0) or (epoch_idx == args.epochs - 1):
             # real testing
             avg_test_scalars = AverageMeterDict()
+            text = 'test_real ' + str(epoch_idx)
             for batch_idx, sample in enumerate(RealTestImgLoader):
-                global_step = len(RealTestImgLoader) * epoch_idx + batch_idx
+                if batch_idx > 150:
+                    break
+                #global_step = len(RealTestImgLoader) * epoch_idx + batch_idx
                 start_time = time.time()
                 do_summary = global_step % args.test_summary_freq == 0
                 loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=do_summary)
                 if (not is_distributed) or (dist.get_rank() == 0):
                     if do_summary:
-                        save_scalars(logger, 'test', scalar_outputs, global_step)
-                        save_images(logger, 'test', image_outputs, global_step)
+                        save_scalars(logger, text, scalar_outputs, batch_idx)
+                        save_images(logger, text, image_outputs, batch_idx)
                     avg_test_scalars.update(scalar_outputs)
                     del scalar_outputs, image_outputs
                     if batch_idx % args.log_freq == 0:
