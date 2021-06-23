@@ -355,6 +355,7 @@ def train():
                                                                                              batch_idx,
                                                                                              len(SimTestImgLoader), loss,
                                                                                              time.time() - start_time))
+            avg_test_scalars = avg_test_scalars.mean()
             print("avg_test_scalars", avg_test_scalars)
             gc.collect()
 
@@ -382,6 +383,7 @@ def train():
                                                                                              batch_idx,
                                                                                              len(RealTestImgLoader), loss,
                                                                                              time.time() - start_time))
+            avg_test_scalars = avg_test_scalars.mean()
             print("avg_test_scalars", avg_test_scalars)
             gc.collect()
 
@@ -558,7 +560,7 @@ def test_sample(sample, compute_metrics=True):
 def warp(label, disp):
     label = torch.tensor(label).reshape((1,1,540,960)).float().cuda()
     disp_gt_rgb = disp.reshape((1,1,540,960)).cuda()
-    label_rgb = apply_disparity_cu(label, -disp_gt_rgb.int())
+    label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
     label_rgb = label_rgb.reshape((1,540,960))
     label = label_rgb.cpu().numpy()[0]
     return label
