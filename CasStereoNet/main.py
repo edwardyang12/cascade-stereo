@@ -355,6 +355,7 @@ def train():
                                                                                              batch_idx,
                                                                                              len(SimTestImgLoader), loss,
                                                                                              time.time() - start_time))
+            print("avg_test_scalars", avg_test_scalars)
             gc.collect()
 
         if (epoch_idx % args.eval_freq == 0) or (epoch_idx == args.epochs - 1):
@@ -381,6 +382,7 @@ def train():
                                                                                              batch_idx,
                                                                                              len(RealTestImgLoader), loss,
                                                                                              time.time() - start_time))
+            print("avg_test_scalars", avg_test_scalars)
             gc.collect()
 
 
