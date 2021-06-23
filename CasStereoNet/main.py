@@ -32,8 +32,12 @@ parser.add_argument('--datapath', required=True, help='data path')
 parser.add_argument('--depthpath', required=True, help='depth path')
 parser.add_argument('--test_dataset', required=True, help='dataset name', choices=__datasets__.keys())
 parser.add_argument('--test_datapath', required=True, help='data path')
+parser.add_argument('--test_sim_datapath', required=True, help='data path')
+parser.add_argument('--test_real_datapath', required=True, help='data path')
 parser.add_argument('--trainlist', required=True, help='training list')
 parser.add_argument('--testlist', required=True, help='testing list')
+parser.add_argument('--sim_testlist', required=True, help='testing list')
+parser.add_argument('--real_testlist', required=True, help='testing list')
 
 parser.add_argument('--lr', type=float, default=0.001, help='base learning rate')
 parser.add_argument('--batch_size', type=int, default=1, help='training batch size')
@@ -47,6 +51,7 @@ parser.add_argument('--resume', action='store_true', help='continue training the
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
 
 parser.add_argument('--summary_freq', type=int, default=50, help='the frequency of saving summary')
+parser.add_argument('--test_summary_freq', type=int, default=50, help='the frequency of saving summary')
 parser.add_argument('--save_freq', type=int, default=1, help='the frequency of saving checkpoint')
 
 parser.add_argument('--log_freq', type=int, default=50, help='log freq')
@@ -77,8 +82,13 @@ parser.add_argument('--opt-level', type=str, default="O0")
 parser.add_argument('--keep-batchnorm-fp32', type=str, default=None)
 parser.add_argument('--loss-scale', type=str, default=None)
 
-parser.add_argument('--sim', action='store_true', help='sim data')
-parser.add_argument('--real', action='store_true', help='real data')
+parser.add_argument('--brightness', type=str, default=None)
+parser.add_argument('--contrast', type=str, default=None)
+parser.add_argument('--kernel', type=int, default=None)
+parser.add_argument('--var', type=str, default=None)
+
+
+
 
 
 # parse arguments
@@ -185,22 +195,30 @@ else:
 
 
 # dataset, dataloader
-sim = True
-if args.sim:
-    sim = True
-elif args.real:
-    sim = False
+
 
 StereoDataset = __datasets__[args.dataset]
 Test_StereoDataset = __datasets__[args.test_dataset]
+Test_sim_StereoDataset = __datasets__[args.test_dataset]
+Test_real_StereoDataset = __datasets__[args.test_dataset]
+
 train_dataset = StereoDataset(args.datapath, args.depthpath, args.trainlist, True,
                               crop_height=args.crop_height, crop_width=args.crop_width,
                               test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width,
-                              sim=sim)
+                              left_img="0128_irL_denoised_half.png", right_img="0128_irR_denoised_half.png", args=args)
 test_dataset = Test_StereoDataset(args.test_datapath, args.depthpath, args.testlist, False,
                              crop_height=args.crop_height, crop_width=args.crop_width,
                              test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width,
-                             sim=sim)
+                             left_img="0128_irL_denoised_half.png", right_img="0128_irR_denoised_half.png", args=args)
+sim_test_dataset = Test_sim_StereoDataset(args.test_sim_datapath, args.depthpath, args.sim_testlist, False,
+                             crop_height=args.crop_height, crop_width=args.crop_width,
+                             test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width,
+                             left_img="0128_irL_denoised_half.png", right_img="0128_irR_denoised_half.png", args=args)
+real_test_dataset = Test_real_StereoDataset(args.test_real_datapath, args.depthpath, args.real_testlist, False,
+                             crop_height=args.crop_height, crop_width=args.crop_width,
+                             test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width,
+                             left_img="1024_irL_real_1080.png", right_img="1024_irR_real_1080.png", args=args)
+
 if is_distributed:
     train_sampler = torch.utils.data.DistributedSampler(train_dataset, num_replicas=dist.get_world_size(),
                                                         rank=dist.get_rank())
@@ -217,6 +235,12 @@ else:
                                                  shuffle=True, num_workers=8, drop_last=True)
 
     TestImgLoader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size,
+                                                shuffle=False, num_workers=4, drop_last=False)
+
+    SimTestImgLoader = torch.utils.data.DataLoader(sim_test_dataset, batch_size=args.test_batch_size,
+                                                shuffle=False, num_workers=4, drop_last=False)
+
+    RealTestImgLoader = torch.utils.data.DataLoader(real_test_dataset, batch_size=args.test_batch_size,
                                                 shuffle=False, num_workers=4, drop_last=False)
 
 
@@ -264,7 +288,7 @@ def train():
             for batch_idx, sample in enumerate(TestImgLoader):
                 global_step = len(TestImgLoader) * epoch_idx + batch_idx
                 start_time = time.time()
-                do_summary = global_step % args.summary_freq == 0
+                do_summary = global_step % args.test_summary_freq == 0
                 loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=do_summary)
                 if (not is_distributed) or (dist.get_rank() == 0):
                     if do_summary:
@@ -279,10 +303,14 @@ def train():
                                                                                              batch_idx,
                                                                                              len(TestImgLoader), loss,
                                                                                              time.time() - start_time))
+
+
             if (not is_distributed) or (dist.get_rank() == 0):
                 avg_test_scalars = avg_test_scalars.mean()
                 save_scalars(logger, 'fulltest', avg_test_scalars, len(TrainImgLoader) * (epoch_idx + 1))
                 print("avg_test_scalars", avg_test_scalars)
+
+
 
             # saving bset checkpoints
             if (not is_distributed) or (dist.get_rank() == 0):
@@ -297,6 +325,53 @@ def train():
                         torch.save(checkpoint_data, save_filename)
                         print("Best Checkpoint epoch_idx:{}".format(epoch_idx))
 
+            gc.collect()
+
+
+        if (epoch_idx % args.eval_freq == 0) or (epoch_idx == args.epochs - 1):
+            # sim testing
+            avg_test_scalars = AverageMeterDict()
+            for batch_idx, sample in enumerate(SimTestImgLoader):
+                global_step = len(SimTestImgLoader) * epoch_idx + batch_idx
+                start_time = time.time()
+                do_summary = global_step % args.test_summary_freq == 0
+                loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=do_summary)
+                if (not is_distributed) or (dist.get_rank() == 0):
+                    if do_summary:
+                        save_scalars(logger, 'test', scalar_outputs, global_step)
+                        save_images(logger, 'test', image_outputs, global_step)
+                    avg_test_scalars.update(scalar_outputs)
+                    del scalar_outputs, image_outputs
+                    if batch_idx % args.log_freq == 0:
+                        if isinstance(loss, (list, tuple)):
+                            loss = loss[0]
+                        print('Epoch {}/{}, Iter {}/{}, test loss = {:.3f}, time = {:3f}'.format(epoch_idx, args.epochs,
+                                                                                             batch_idx,
+                                                                                             len(SimTestImgLoader), loss,
+                                                                                             time.time() - start_time))
+            gc.collect()
+
+        if (epoch_idx % args.eval_freq == 0) or (epoch_idx == args.epochs - 1):
+            # real testing
+            avg_test_scalars = AverageMeterDict()
+            for batch_idx, sample in enumerate(RealTestImgLoader):
+                global_step = len(RealTestImgLoader) * epoch_idx + batch_idx
+                start_time = time.time()
+                do_summary = global_step % args.test_summary_freq == 0
+                loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=do_summary)
+                if (not is_distributed) or (dist.get_rank() == 0):
+                    if do_summary:
+                        save_scalars(logger, 'test', scalar_outputs, global_step)
+                        save_images(logger, 'test', image_outputs, global_step)
+                    avg_test_scalars.update(scalar_outputs)
+                    del scalar_outputs, image_outputs
+                    if batch_idx % args.log_freq == 0:
+                        if isinstance(loss, (list, tuple)):
+                            loss = loss[0]
+                        print('Epoch {}/{}, Iter {}/{}, test loss = {:.3f}, time = {:3f}'.format(epoch_idx, args.epochs,
+                                                                                             batch_idx,
+                                                                                             len(RealTestImgLoader), loss,
+                                                                                             time.time() - start_time))
             gc.collect()
 
 

@@ -12,12 +12,13 @@ import torchvision.transforms as transforms
 from datasets.warp_ops import *
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-class KITTIDataset(Dataset):
-    def __init__(self, datapath, depthpath, list_filename, training, crop_width, crop_height, test_crop_width, test_crop_height, sim):
+class MESSYDataset(Dataset):
+    def __init__(self, datapath, depthpath, list_filename, training, crop_width, crop_height, test_crop_width, test_crop_height, left_img, right_img, args):
         self.datapath = datapath
         self.training = training
-        self.issim = sim
         self.depthpath = depthpath
+        self.left_img = left_img
+        self.right_img = right_img
         self.left_filenames, self.right_filenames, self.disp_filenames_L, self.disp_filenames_R, self.disp_filenames, self.meta_filenames, self.label = self.load_path(list_filename)
 
         self.crop_width = crop_width
@@ -32,16 +33,9 @@ class KITTIDataset(Dataset):
 
     def load_path(self, list_filename):
         lines = read_all_lines(list_filename)
-        img_name_L = None
-        img_name_R = None
-        if self.issim:
-            img_name_L = "0128_irL_denoised_half.png"
-            img_name_R = "0128_irR_denoised_half.png"
-        else:
-            img_name_L = "1024_irL_real_1080.png"
-            img_name_R = "1024_irR_real_1080.png"
-        left_images = [os.path.join(x,img_name_L) for x in lines]
-        right_images = [os.path.join(x,img_name_R) for x in lines]
+
+        left_images = [os.path.join(x,self.left_img) for x in lines]
+        right_images = [os.path.join(x,self.right_img) for x in lines]
 
         label_images = [os.path.join(x,"label.png") for x in lines]
         disp_images_L = [os.path.join(x,"depthL.png") for x in lines]
@@ -114,8 +108,8 @@ class KITTIDataset(Dataset):
 
     def __getitem__(self, index):
 
-        left_img = self.load_image(os.path.join(self.datapath, self.left_filenames[index]), not self.issim)
-        right_img = self.load_image(os.path.join(self.datapath, self.right_filenames[index]), not self.issim)
+        left_img = self.load_image(os.path.join(self.datapath, self.left_filenames[index]), self.left_img == "1024_irL_real_1080.png")
+        right_img = self.load_image(os.path.join(self.datapath, self.right_filenames[index]), self.left_img == "1024_irL_real_1080.png")
         label = self.load_label(os.path.join(self.datapath, self.label[index]), True)
 
 
@@ -123,7 +117,7 @@ class KITTIDataset(Dataset):
 
         if self.disp_filenames_L:  # has disparity ground truth
             path = None
-            if self.issim:
+            if self.left_img == "0128_irL_denoised_half.png":
                 path = self.datapath
             else:
                 path = self.depthpath
@@ -161,7 +155,7 @@ class KITTIDataset(Dataset):
             # to tensor, normalize
 
             #color_jitter = transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0, hue=0)
-            processed = get_transform_train()
+            processed = get_transform_train(float(args.brightness), float(args.contrast), args.kernel, (float(e) for e in args.var.split(",") if e))
             left_img = processed(left_img)
             right_img = processed(right_img)
 

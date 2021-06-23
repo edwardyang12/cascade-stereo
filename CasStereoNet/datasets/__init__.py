@@ -1,7 +1,7 @@
-from .kitti_dataset import KITTIDataset
+from .messy_dataset import MESSYDataset
 #from .sceneflow_dataset import SceneFlowDatset
 
 __datasets__ = {
     #"sceneflow": SceneFlowDatset,
-    "kitti": KITTIDataset
+    "messy_table": MESSYDataset
 }

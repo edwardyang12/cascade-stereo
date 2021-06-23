@@ -3,13 +3,13 @@ import re
 import torchvision.transforms as transforms
 
 
-def get_transform_train():
+def get_transform_train(brightness, contrast, kernel, var):
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
 
     return transforms.Compose([
-        transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0, hue=0),
-        transforms.GaussianBlur(3,(0.1,2.0)),
+        transforms.ColorJitter(brightness=brightness, contrast=contrast, saturation=0, hue=0),
+        transforms.GaussianBlur(kernel,var),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])
