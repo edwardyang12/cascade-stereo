@@ -340,7 +340,7 @@ def train():
                     break
                 #global_step = len(SimTestImgLoader) * epoch_idx + batch_idx
                 start_time = time.time()
-                do_summary = global_step % args.test_summary_freq == 0
+                do_summary = batch_idx % args.test_summary_freq == 0
                 loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=do_summary)
                 if (not is_distributed) or (dist.get_rank() == 0):
                     if do_summary:
@@ -369,7 +369,7 @@ def train():
                     break
                 #global_step = len(RealTestImgLoader) * epoch_idx + batch_idx
                 start_time = time.time()
-                do_summary = global_step % args.test_summary_freq == 0
+                do_summary = batch_idx % args.test_summary_freq == 0
                 loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=do_summary)
                 if (not is_distributed) or (dist.get_rank() == 0):
                     if do_summary:
