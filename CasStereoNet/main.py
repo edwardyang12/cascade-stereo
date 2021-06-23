@@ -528,7 +528,7 @@ def test_sample(sample, compute_metrics=True):
     bad1 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad)[maskest] > 1)/np.sum(maskest)
     bad2 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad)[maskest] > 2)/np.sum(maskest)
 
-    dep_gt = disp_gt
+    #dep_gt = disp_gt
 
     scalar_outputs["D1"] = [D1_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
     scalar_outputs["EPE"] = [EPE_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
@@ -543,7 +543,7 @@ def test_sample(sample, compute_metrics=True):
     scalar_outputs["dep8"] = [dep_8]
 
     label = torch.tensor(label).reshape((1,540,960))
-    image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR, "label": label}
+    image_outputs = {"disp_est": disp_ests[:,228:,:960], "disp_gt": disp_gt[:,228:,:960], "imgL": imgL[:,:,228:,:960], "imgR": imgR[:,:,228:,:960], "label": label[:,228:,:960]}
 
     if compute_metrics:
         image_outputs["errormap"] = [disp_error_image_func.apply(disp_est, disp_gt) for disp_est in disp_ests]
