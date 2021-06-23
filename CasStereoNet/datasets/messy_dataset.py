@@ -156,7 +156,8 @@ class MESSYDataset(Dataset):
             # to tensor, normalize
 
             #color_jitter = transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0, hue=0)
-            processed = get_transform_train(float(self.args.brightness), float(self.args.contrast), self.args.kernel, (float(e) for e in self.args.var.split(",") if e))
+            #print(str((float(e) for e in self.args.var.split(",") if e)))
+            processed = get_transform_train(float(self.args.brightness), float(self.args.contrast), self.args.kernel, tuple([float(e) for e in self.args.var.split(",") if e]))
             left_img = processed(left_img)
             right_img = processed(right_img)
 
