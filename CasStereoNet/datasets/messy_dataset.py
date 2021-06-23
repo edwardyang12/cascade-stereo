@@ -19,6 +19,7 @@ class MESSYDataset(Dataset):
         self.depthpath = depthpath
         self.left_img = left_img
         self.right_img = right_img
+        self.args = args
         self.left_filenames, self.right_filenames, self.disp_filenames_L, self.disp_filenames_R, self.disp_filenames, self.meta_filenames, self.label = self.load_path(list_filename)
 
         self.crop_width = crop_width
@@ -155,7 +156,7 @@ class MESSYDataset(Dataset):
             # to tensor, normalize
 
             #color_jitter = transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0, hue=0)
-            processed = get_transform_train(float(args.brightness), float(args.contrast), args.kernel, (float(e) for e in args.var.split(",") if e))
+            processed = get_transform_train(float(self.args.brightness), float(self.args.contrast), self.args.kernel, (float(e) for e in self.args.var.split(",") if e))
             left_img = processed(left_img)
             right_img = processed(right_img)
 
