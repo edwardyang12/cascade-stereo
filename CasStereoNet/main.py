@@ -287,7 +287,7 @@ def train():
             # testing
             avg_test_scalars = AverageMeterDict()
             for batch_idx, sample in enumerate(TestImgLoader):
-                if batch_idx > 150:
+                if batch_idx > 100:
                     break
                 global_step = len(TestImgLoader) * epoch_idx + batch_idx
                 start_time = time.time()
@@ -336,7 +336,7 @@ def train():
             avg_test_scalars = AverageMeterDict()
             text = 'test_sim ' + str(epoch_idx)
             for batch_idx, sample in enumerate(SimTestImgLoader):
-                if batch_idx > 150:
+                if batch_idx > 100:
                     break
                 #global_step = len(SimTestImgLoader) * epoch_idx + batch_idx
                 start_time = time.time()
@@ -363,8 +363,9 @@ def train():
             # real testing
             avg_test_scalars = AverageMeterDict()
             text = 'test_real ' + str(epoch_idx)
+            print(text)
             for batch_idx, sample in enumerate(RealTestImgLoader):
-                if batch_idx > 150:
+                if batch_idx > 100:
                     break
                 #global_step = len(RealTestImgLoader) * epoch_idx + batch_idx
                 start_time = time.time()
