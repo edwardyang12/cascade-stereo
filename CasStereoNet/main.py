@@ -543,7 +543,7 @@ def test_sample(sample, compute_metrics=True):
     scalar_outputs["dep8"] = [dep_8]
 
     label = torch.tensor(label).reshape((1,540,960))
-    image_outputs = {"disp_est": disp_ests[:,228:,:960], "disp_gt": disp_gt[:,228:,:960], "imgL": imgL[:,:,228:,:960], "imgR": imgR[:,:,228:,:960], "label": label[:,228:,:960]}
+    image_outputs = {"disp_est": disp_ests[0][:,228:,:960], "disp_gt": disp_gt[:,228:,:960], "imgL": imgL[:,:,228:,:960], "imgR": imgR[:,:,228:,:960], "label": label}
 
     if compute_metrics:
         image_outputs["errormap"] = [disp_error_image_func.apply(disp_est, disp_gt) for disp_est in disp_ests]
