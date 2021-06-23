@@ -550,7 +550,7 @@ def test_sample(sample, compute_metrics=True):
     image_outputs = {"disp_est": disp_ests[0][:,228:,:960], "disp_gt": disp_gt[:,228:,:960], "imgL": imgL[:,:,228:,:960], "imgR": imgR[:,:,228:,:960], "label": label}
 
     if compute_metrics:
-        image_outputs["errormap"] = [disp_error_image_func.apply(disp_est, disp_gt) for disp_est in disp_ests]
+        image_outputs["errormap"] = [(disp_error_image_func.apply(disp_est, disp_gt))[:,:,228:,:960] for disp_est in disp_ests]
 
     if is_distributed:
         scalar_outputs = reduce_scalar_outputs(scalar_outputs)
@@ -560,7 +560,7 @@ def test_sample(sample, compute_metrics=True):
 def warp(label, disp):
     label = torch.tensor(label).reshape((1,1,540,960)).float().cuda()
     disp_gt_rgb = disp.reshape((1,1,540,960)).cuda()
-    label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
+    label_rgb = apply_disparity_cu(label, -disp_gt_rgb.int())
     label_rgb = label_rgb.reshape((1,540,960))
     label = label_rgb.cpu().numpy()[0]
     return label
