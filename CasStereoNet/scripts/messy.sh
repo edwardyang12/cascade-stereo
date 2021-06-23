@@ -2,15 +2,14 @@
 #set -x
 export PYTHONWARNINGS="ignore"
 
-save_path="/cephfs/jianyu/eval/cs_real_eval"
+save_path="/cephfs/jianyu/eval/cs_eval"
 
 if [ ! -d $save_path ];then
     mkdir -p $save_path
 fi
 
-DATAPATH="/cephfs/datasets/iccv_pnp/real_data_v9/"
 
-python -m torch.distributed.launch --nproc_per_node=1 /cephfs/jianyu/cs_eval/CasStereoNet/main.py
+python -m torch.distributed.launch --nproc_per_node=1 /cephfs/jianyu/cs_eval/CasStereoNet/main.py \
     --dataset messy_table \
     --test_dataset messy_table \
     --datapath /cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training \
