@@ -443,7 +443,7 @@ def test_sample(sample, compute_metrics=True):
 
     dep_gt_c = dep_gt.cpu().numpy()[0]
     obj_ids = obj_ids.cpu().numpy()[0]
-    label = label.cpu().numpy()[0]
+    label = label[0].cpu().numpy()[0]
     print("dep_gt_c ", dep_gt_c.shape)
     print("obj_ids ", obj_ids.shape)
     print("label ", label.shape)
