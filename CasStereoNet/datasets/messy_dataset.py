@@ -20,7 +20,7 @@ class MESSYDataset(Dataset):
         self.left_img = left_img
         self.right_img = right_img
         self.args = args
-        self.left_filenames, self.right_filenames, self.disp_filenames_L, self.disp_filenames_R, self.disp_filenames, self.meta_filenames, self.label = self.load_path(list_filename)
+        self.left_filenames, self.right_filenames, self.disp_filenames_L, self.disp_filenames_R, self.meta_filenames, self.label = self.load_path(list_filename)
 
         self.crop_width = crop_width
         self.crop_height = crop_height
@@ -38,12 +38,12 @@ class MESSYDataset(Dataset):
         left_images = [os.path.join(x,self.left_img) for x in lines]
         right_images = [os.path.join(x,self.right_img) for x in lines]
 
-        label_images = [os.path.join(x,"label.png") for x in lines]
+        label_images = [os.path.join(x,"irL_label_image.png") for x in lines]
         disp_images_L = [os.path.join(x,"depthL.png") for x in lines]
         disp_images_R = [os.path.join(x,"depthR.png") for x in lines]
-        disp_images = [os.path.join(x,"depth.png") for x in lines]
+        #disp_images = [os.path.join(x,"depth.png") for x in lines]
         meta = [os.path.join(x,"meta.pkl") for x in lines]
-        return left_images, right_images, disp_images_L, disp_images_R, disp_images, meta, label_images
+        return left_images, right_images, disp_images_L, disp_images_R, meta, label_images
 
 
     def load_pickle(self, filename):
@@ -57,53 +57,55 @@ class MESSYDataset(Dataset):
             img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
         return img
 
-    def load_label(self, filename, half):
+    def load_label(self, filename, metafile, half):
         img = Image.open(filename).convert('I;16')
+        meta = self.load_pickle(metafile)
         if half:
             img = img.resize((int(img.size[0]/2),int(img.size[1]/2)), resample=Image.NEAREST)
-        return img
 
-    def load_disp(self, filename_L, filename_R, filename, metafile):
+        return img, meta['object_ids']
+
+    def load_disp(self, filename_L, filename_R, metafile):
         img_L = Image.open(filename_L)
         img_R = Image.open(filename_R)
-        img = Image.open(filename)
+        #img = Image.open(filename)
         meta = self.load_pickle(metafile)
 
         img_L = img_L.resize((int(img_L.size[0]/2),int(img_L.size[1]/2)))
         img_R = img_R.resize((int(img_R.size[0]/2),int(img_R.size[1]/2)))
-        img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
+        #img = img.resize((int(img.size[0]/2),int(img.size[1]/2)))
         data_L = np.asarray(img_L,dtype=np.float32)
         data_R = np.asarray(img_R,dtype=np.float32)
-        data = np.asarray(img,dtype=np.float32)
+        #data = np.asarray(img,dtype=np.float32)
 
         data_L_mask = (data_L < 0)
         data_R_mask = (data_R < 0)
-        data_mask = (data < 0)
+        #data_mask = (data < 0)
         data_L[data_L_mask] = 0.0
         data_R[data_R_mask] = 0.0
-        data[data_mask] = 0.0
+        #data[data_mask] = 0.0
         #if not (torch.all(torch.tensor(data_L) >= 0) and torch.all(torch.tensor(data_R) >= 0)):
         #    print("neg found")
         #print(meta)
-        e = meta['extrinsic'][:3,3]
+        #e = meta['extrinsic'][:3,3]
         el = meta['extrinsic_l'][:3,3]
         er = meta['extrinsic_r'][:3,3]
 
         b = np.linalg.norm(el-er)*1000
-        br = np.linalg.norm(el-e)*1000
+        #br = np.linalg.norm(el-e)*1000
         f = meta['intrinsic_r'][0][0]/2
-        frgb = meta['intrinsic'][0][0]/2
+        #frgb = meta['intrinsic'][0][0]/2
 
         mask_l = (data_L == 0)
         mask_r = (data_R == 0)
-        mask = (data == 0)
+        #mask = (data == 0)
         dis_L = b*f/data_L
         dis_L[mask_l] = 0
         dis_R = b*f/data_R
         dis_R[mask_r] = 0
-        dis_rgb = br*frgb/data
-        dis_rgb[mask] = 0
-        return b, br, f, data_L, data_R, data, dis_L, dis_R, dis_rgb
+        #dis_rgb = br*frgb/data
+        #dis_rgb[mask] = 0
+        return b, f, data_L, data_R, dis_L, dis_R
 
     def __len__(self):
         return len(self.left_filenames)
@@ -112,7 +114,7 @@ class MESSYDataset(Dataset):
 
         left_img = self.load_image(os.path.join(self.datapath, self.left_filenames[index]), self.left_img == "1024_irL_real_1080.png")
         right_img = self.load_image(os.path.join(self.datapath, self.right_filenames[index]), self.left_img == "1024_irL_real_1080.png")
-        label = self.load_label(os.path.join(self.datapath, self.label[index]), True)
+        label, obj_ids = self.load_label(os.path.join(self.args.test_real_datapath, self.label[index]), os.path.join(self.datapath, self.meta_filenames[index]), True)
 
 
 
@@ -123,9 +125,8 @@ class MESSYDataset(Dataset):
                 path = self.datapath
             else:
                 path = self.depthpath
-            b, br, f, depthL, depthR, depth, disparity_L, disparity_R, disparity = self.load_disp(os.path.join(path, self.disp_filenames_L[index]), \
+            b, f, depthL, depthR, disparity_L, disparity_R = self.load_disp(os.path.join(path, self.disp_filenames_L[index]), \
                                                     os.path.join(path, self.disp_filenames_R[index]), \
-                                                    os.path.join(path, self.disp_filenames[index]), \
                                                     os.path.join(path, self.meta_filenames[index]))
             #print(type(disparity_R), disparity_R.shape)
             #disparity_R_t = torch.tensor(disparity_R)
@@ -158,7 +159,7 @@ class MESSYDataset(Dataset):
 
             #color_jitter = transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0, hue=0)
             #print(str((float(e) for e in self.args.var.split(",") if e)))
-            processed = get_transform_train(float(self.args.brightness), float(self.args.contrast), self.args.kernel, tuple([float(e) for e in self.args.var.split(",") if e]))
+            processed = get_transform_train(0., 0., 0, (1,2))
             left_img = processed(left_img)
             right_img = processed(right_img)
 
@@ -199,13 +200,12 @@ class MESSYDataset(Dataset):
                 return {"left": left_img,
                         "right": right_img,
                         "disparity": disparity_R,
-                        "disparity_rgb": disparity,
                         "top_pad": top_pad,
                         "right_pad": right_pad,
                         "depth": depthL,
                         "baseline": b,
-                        "baseline_rgb": br,
                         "label": label,
+                        "obj_ids": obj_ids,
                         "f": f}
             else:
                 return {"left": left_img,

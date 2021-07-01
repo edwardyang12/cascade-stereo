@@ -82,10 +82,7 @@ parser.add_argument('--opt-level', type=str, default="O0")
 parser.add_argument('--keep-batchnorm-fp32', type=str, default=None)
 parser.add_argument('--loss-scale', type=str, default=None)
 
-parser.add_argument('--brightness', type=str, default=None)
-parser.add_argument('--contrast', type=str, default=None)
-parser.add_argument('--kernel', type=int, default=None)
-parser.add_argument('--var', type=str, default=None)
+
 
 
 
@@ -290,7 +287,7 @@ def train():
                 global_step = len(TestImgLoader) * epoch_idx + batch_idx
                 start_time = time.time()
                 do_summary = global_step % args.test_summary_freq == 0
-                loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=do_summary)
+                loss, scalar_outputs, image_outputs, _, _ = test_sample(sample, compute_metrics=do_summary)
                 if (not is_distributed) or (dist.get_rank() == 0):
                     if do_summary:
                         save_scalars(logger, 'test', scalar_outputs, global_step)
@@ -326,61 +323,6 @@ def train():
                         torch.save(checkpoint_data, save_filename)
                         print("Best Checkpoint epoch_idx:{}".format(epoch_idx))
 
-            gc.collect()
-
-
-        if (epoch_idx % args.eval_freq == 0) or (epoch_idx == args.epochs - 1):
-            # sim testing
-            avg_test_scalars = AverageMeterDict()
-            text = 'test_sim ' + str(epoch_idx)
-            for batch_idx, sample in enumerate(SimTestImgLoader):
-
-                #global_step = len(SimTestImgLoader) * epoch_idx + batch_idx
-                start_time = time.time()
-                do_summary = batch_idx % args.test_summary_freq == 0
-                loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=do_summary)
-                if (not is_distributed) or (dist.get_rank() == 0):
-                    if do_summary:
-                        save_scalars(logger, text, scalar_outputs, batch_idx)
-                        save_images(logger, text, image_outputs, batch_idx)
-                    avg_test_scalars.update(scalar_outputs)
-                    del scalar_outputs, image_outputs
-                    if batch_idx % args.log_freq == 0:
-                        if isinstance(loss, (list, tuple)):
-                            loss = loss[0]
-                        print('Epoch {}/{}, Iter {}/{}, test loss = {:.3f}, time = {:3f}'.format(epoch_idx, args.epochs,
-                                                                                             batch_idx,
-                                                                                             len(SimTestImgLoader), loss,
-                                                                                             time.time() - start_time))
-            avg_test_scalars = avg_test_scalars.mean()
-            print("avg_test_scalars", avg_test_scalars)
-            gc.collect()
-
-        if (epoch_idx % args.eval_freq == 0) or (epoch_idx == args.epochs - 1):
-            # real testing
-            avg_test_scalars = AverageMeterDict()
-            text = 'test_real ' + str(epoch_idx)
-            for batch_idx, sample in enumerate(RealTestImgLoader):
-
-                #global_step = len(RealTestImgLoader) * epoch_idx + batch_idx
-                start_time = time.time()
-                do_summary = batch_idx % args.test_summary_freq == 0
-                loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=do_summary)
-                if (not is_distributed) or (dist.get_rank() == 0):
-                    if do_summary:
-                        save_scalars(logger, text, scalar_outputs, batch_idx)
-                        save_images(logger, text, image_outputs, batch_idx)
-                    avg_test_scalars.update(scalar_outputs)
-                    del scalar_outputs, image_outputs
-                    if batch_idx % args.log_freq == 0:
-                        if isinstance(loss, (list, tuple)):
-                            loss = loss[0]
-                        print('Epoch {}/{}, Iter {}/{}, test loss = {:.3f}, time = {:3f}'.format(epoch_idx, args.epochs,
-                                                                                             batch_idx,
-                                                                                             len(RealTestImgLoader), loss,
-                                                                                             time.time() - start_time))
-            avg_test_scalars = avg_test_scalars.mean()
-            print("avg_test_scalars", avg_test_scalars)
             gc.collect()
 
 
@@ -454,7 +396,7 @@ def test_sample(sample, compute_metrics=True):
         model_eval = model
     model_eval.eval()
 
-    imgL, imgR, disp_gt, disp_rgb, dep_gt, f, b, label = sample['left'], sample['right'], sample['disparity'], sample['disparity_rgb'], sample['depth'], sample['f'], sample['baseline'], sample['label']
+    imgL, imgR, disp_gt, dep_gt, f, b, label, obj_ids = sample['left'], sample['right'], sample['disparity'], sample['depth'], sample['f'], sample['baseline'], sample['label'], sample['obj_ids']
     imgL = imgL.cuda()
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
@@ -488,6 +430,9 @@ def test_sample(sample, compute_metrics=True):
     disp_ests = [outputs_stage["pred"]]
 
     scalar_outputs = {"loss": loss}
+    #obj_err = np.zeros(17)
+    obj_ct = np.zeros(17, dtype=int)
+
     #image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR, "label": label_rgb}
 
 
@@ -496,13 +441,23 @@ def test_sample(sample, compute_metrics=True):
     dispgt = disp_gt.cpu().numpy()[0]
     dispgt = dispgt[228:,:960]
 
+    dep_gt_c = dep_gt.cpu().numpy()[0]
+    obj_ids = obj_ids.cpu().numpy()[0]
+    label = label.cpu().numpy()[0]
+    print("dep_gt_c ", dep_gt_c.shape)
+    print("obj_ids ", obj_ids.shape)
+    print("label ", label.shape)
+
+    obj_ct[obj_ids] = 1
+
+    obj_avg_err = obj_analysis(label, obj_ids, dispgt, depest)
     #label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
     #label_rgb = label_rgb.reshape((1,540,960))
-    label = warp(label, disp_rgb)
+    #label = warp(label, disp_rgb)
     #label = label.cpu().numpy()[0]
     #print(label.shape)
     #print(dispgt.shape)
-    maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (label != 18)
+    maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (dep_gt_c <= 1250)
     #print("mask:", np.sum(maskest))
     #print("back:", np.sum(label == 18))
     maskest2 = (depest == 0)
@@ -551,7 +506,7 @@ def test_sample(sample, compute_metrics=True):
     if is_distributed:
         scalar_outputs = reduce_scalar_outputs(scalar_outputs)
 
-    return tensor2float(scalar_outputs["loss"]), tensor2float(scalar_outputs), image_outputs
+    return tensor2float(scalar_outputs["loss"]), tensor2float(scalar_outputs), image_outputs, obj_avg_err, obj_ct
 
 def warp(label, disp):
     label = torch.tensor(label).reshape((1,1,540,960)).float().cuda()
@@ -561,19 +516,32 @@ def warp(label, disp):
     label = label_rgb.cpu().numpy()[0]
     return label
 
+def obj_analysis(label, obj_ids, disp_gt, disp_est):
+    obj_avg_err = np.zeros(17, dtype=int)
+    for id in obj_ids:
+        mask = (label == id)
+        obj_err = np.linalg.norm(disp_gt[mask] - disp_est[mask])/np.sum(mask)
+        obj_avg_err[id] = obj_err
+    return obj_avg_err
 
 def test_all():
-    # testing
+    # sim testing
     avg_test_scalars = AverageMeterDict()
-    for batch_idx, sample in enumerate(TestImgLoader):
+    obj_dict = np.zeros(17)
+    obj_num = np.zeros(17, dtype=int)
+    for batch_idx, sample in enumerate(SimTestImgLoader):
         start_time = time.time()
-        do_summary = batch_idx % args.summary_freq == 0
-        loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=True)
+        do_summary = batch_idx % args.test_summary_freq == 0
+        loss, scalar_outputs, image_outputs, obj_avg_err, obj_ct = test_sample(sample, compute_metrics=True)
+        obj_dict = obj_dict + obj_avg_err
+        obj_num = obj_num + obj_ct
+
+
         if (not is_distributed) or (dist.get_rank() == 0):
             avg_test_scalars.update(scalar_outputs)
             if do_summary:
-                save_scalars(logger, 'test', scalar_outputs, batch_idx)
-                save_images(logger, 'test', image_outputs, batch_idx)
+                save_scalars(logger, 'test_sim', scalar_outputs, batch_idx)
+                save_images(logger, 'test_sim', image_outputs, batch_idx)
             del scalar_outputs, image_outputs
             if batch_idx % args.log_freq == 0:
                 if isinstance(loss, (list, tuple)):
@@ -582,10 +550,44 @@ def test_all():
                                                                              batch_idx,
                                                                              len(TestImgLoader), loss,
                                                                              time.time() - start_time))
+    average_perobj = obj_dict/obj_num
+    print("per obj sim : ", average_perobj)
     if (not is_distributed) or (dist.get_rank() == 0):
         avg_test_scalars = avg_test_scalars.mean()
-        save_scalars(logger, 'fulltest', avg_test_scalars, len(TestImgLoader))
-        print("avg_test_scalars", avg_test_scalars)
+        save_scalars(logger, 'fulltest_sim', avg_test_scalars, len(TestImgLoader))
+        print("avg_test_scalars_sim", avg_test_scalars)
+
+    # real testing
+    avg_test_scalars = AverageMeterDict()
+    obj_dict = np.zeros(17)
+    obj_num = np.zeros(17, dtype=int)
+    for batch_idx, sample in enumerate(RealTestImgLoader):
+        start_time = time.time()
+        do_summary = batch_idx % args.test_summary_freq == 0
+        loss, scalar_outputs, image_outputs, obj_avg_err, obj_ct = test_sample(sample, compute_metrics=True)
+        obj_dict = obj_dict + obj_avg_err
+        obj_num = obj_num + obj_ct
+
+
+        if (not is_distributed) or (dist.get_rank() == 0):
+            avg_test_scalars.update(scalar_outputs)
+            if do_summary:
+                save_scalars(logger, 'test_real', scalar_outputs, batch_idx)
+                save_images(logger, 'test_real', image_outputs, batch_idx)
+            del scalar_outputs, image_outputs
+            if batch_idx % args.log_freq == 0:
+                if isinstance(loss, (list, tuple)):
+                    loss = loss[0]
+                print('Iter {}/{}, test loss = {:.3f}, time = {:3f}'.format(
+                                                                             batch_idx,
+                                                                             len(TestImgLoader), loss,
+                                                                             time.time() - start_time))
+    average_perobj = obj_dict/obj_num
+    print("per obj real : ", average_perobj)
+    if (not is_distributed) or (dist.get_rank() == 0):
+        avg_test_scalars = avg_test_scalars.mean()
+        save_scalars(logger, 'fulltest_real', avg_test_scalars, len(TestImgLoader))
+        print("avg_test_scalars_real", avg_test_scalars)
 
 
 if __name__ == '__main__':

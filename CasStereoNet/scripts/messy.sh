@@ -37,11 +37,7 @@ python -m torch.distributed.launch --nproc_per_node=1 /cephfs/jianyu/cs_eval/Cas
     --ndisps "48,24" \
     --disp_inter_r "4,1"  \
     --batch_size 2 \
-    --mode train \
+    --mode test \
     --summary_freq 500 \
     --test_summary_freq 50 \
-    --brightness 0.5 \
-    --contrast 0.5 \
-    --kernel 3 \
-    --var "0.1,2.0" \
-    #--loadckpt "/cephfs/jianyu/train/cs_train/checkpoint_best.ckpt"
+    --loadckpt "/cephfs/jianyu/eval/cs_train_1/checkpoint_best.ckpt"
