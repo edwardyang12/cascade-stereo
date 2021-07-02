@@ -523,7 +523,7 @@ def obj_analysis(label, obj_ids, dep_gt, dep_est):
     for id in obj_ids:
         mask = (label == id)
         obj_err = np.linalg.norm(dep_gt[mask] - dep_est[mask])/np.sum(mask)
-        print(id," ",obj_err)
+        #print(id," ",obj_err)
         if np.sum(mask) == 0:
             obj_err = 0
         obj_avg_err[id] = obj_err
