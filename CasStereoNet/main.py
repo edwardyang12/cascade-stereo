@@ -464,7 +464,7 @@ def test_sample(sample, compute_metrics=True):
     depest = np.divide(f*b, depest)
     depest[maskest2] = 0
 
-    obj_avg_err = obj_analysis(label, obj_ids, dep_gt_c, depest)
+    obj_avg_err = obj_analysis(label, obj_ids, dep_gt_c, np.asarray(depest))
     #print(depest.dtype, dep_gt.dtype, depest.shape, dep_gt.shape)
     dep_err_map = np.asarray(depest) - np.asarray(dep_gt[0])
     dep_err = np.linalg.norm(dep_err_map[maskest])/np.sum(maskest)
