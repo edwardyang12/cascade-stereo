@@ -548,13 +548,13 @@ def test_all():
                     loss = loss[0]
                 print('Iter {}/{}, test loss = {:.3f}, time = {:3f}'.format(
                                                                              batch_idx,
-                                                                             len(TestImgLoader), loss,
+                                                                             len(SimTestImgLoader), loss,
                                                                              time.time() - start_time))
     average_perobj = obj_dict/obj_num
     print("per obj sim : ", average_perobj)
     if (not is_distributed) or (dist.get_rank() == 0):
         avg_test_scalars = avg_test_scalars.mean()
-        save_scalars(logger, 'fulltest_sim', avg_test_scalars, len(TestImgLoader))
+        save_scalars(logger, 'fulltest_sim', avg_test_scalars, len(SimTestImgLoader))
         print("avg_test_scalars_sim", avg_test_scalars)
 
     # real testing
@@ -580,13 +580,13 @@ def test_all():
                     loss = loss[0]
                 print('Iter {}/{}, test loss = {:.3f}, time = {:3f}'.format(
                                                                              batch_idx,
-                                                                             len(TestImgLoader), loss,
+                                                                             len(RealTestImgLoader), loss,
                                                                              time.time() - start_time))
     average_perobj = obj_dict/obj_num
     print("per obj real : ", average_perobj)
     if (not is_distributed) or (dist.get_rank() == 0):
         avg_test_scalars = avg_test_scalars.mean()
-        save_scalars(logger, 'fulltest_real', avg_test_scalars, len(TestImgLoader))
+        save_scalars(logger, 'fulltest_real', avg_test_scalars, len(RealTestImgLoader))
         print("avg_test_scalars_real", avg_test_scalars)
 
 
