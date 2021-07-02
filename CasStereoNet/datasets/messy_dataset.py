@@ -112,7 +112,7 @@ class MESSYDataset(Dataset):
 
     def __getitem__(self, index):
 
-        print(self.datapath, " ", self.left_filenames[index])
+        #print(self.datapath, " ", self.left_filenames[index])
         left_img = self.load_image(os.path.join(self.datapath, self.left_filenames[index]), self.left_img == "1024_irL_real_1080.png")
         right_img = self.load_image(os.path.join(self.datapath, self.right_filenames[index]), self.left_img == "1024_irL_real_1080.png")
         label, obj_ids = self.load_label(os.path.join(self.args.test_real_datapath, self.label[index]), os.path.join(self.datapath, self.meta_filenames[index]), True)
