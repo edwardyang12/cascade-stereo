@@ -557,6 +557,7 @@ def test_all():
                                                                              time.time() - start_time))
     average_perobj = obj_dict/obj_num
     print("per obj sim : ", average_perobj)
+    print("per obj cnt : ", obj_num)
     if (not is_distributed) or (dist.get_rank() == 0):
         avg_test_scalars = avg_test_scalars.mean()
         save_scalars(logger, 'fulltest_sim', avg_test_scalars, len(SimTestImgLoader))
@@ -589,6 +590,7 @@ def test_all():
                                                                              time.time() - start_time))
     average_perobj = obj_dict/obj_num
     print("per obj real : ", average_perobj)
+    print("per obj cnt : ", obj_num)
     if (not is_distributed) or (dist.get_rank() == 0):
         avg_test_scalars = avg_test_scalars.mean()
         save_scalars(logger, 'fulltest_real', avg_test_scalars, len(RealTestImgLoader))
