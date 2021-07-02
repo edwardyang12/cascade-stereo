@@ -424,6 +424,7 @@ def test_sample(sample, compute_metrics=True):
     outputs = model_eval(imgL, imgR)
 
     mask = (disp_gt < args.maxdisp) & (disp_gt > 0)
+    #print(mask.reshape)
     loss = torch.tensor(0, dtype=imgL.dtype, device=imgL.device, requires_grad=False) #model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in args.dlossw.split(",") if e])
 
     outputs_stage = outputs["stage{}".format(num_stage)]
@@ -488,7 +489,7 @@ def test_sample(sample, compute_metrics=True):
     #dep_gt = disp_gt
 
     scalar_outputs["D1"] = [D1_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
-    scalar_outputs["EPE"] = [EPE_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
+    scalar_outputs["EPE"] = [EPE_metric(disp_est[:,228:,:960], disp_gt[:,228:,:960], torch.tensor(maskest).reshape((1,540,960))) for disp_est in disp_ests]
     scalar_outputs["Thres1"] = [Thres_metric(disp_est, disp_gt, mask, 1.0) for disp_est in disp_ests]
     scalar_outputs["Thres2"] = [Thres_metric(disp_est, disp_gt, mask, 2.0) for disp_est in disp_ests]
     scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
