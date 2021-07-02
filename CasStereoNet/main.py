@@ -466,8 +466,8 @@ def test_sample(sample, compute_metrics=True):
 
     obj_avg_err = obj_analysis(label, obj_ids, dep_gt_c, np.asarray(depest))
     #print(depest.dtype, dep_gt.dtype, depest.shape, dep_gt.shape)
-    dep_err_map = np.asarray(depest) - np.asarray(dep_gt[0])
-    dep_err = np.linalg.norm(dep_err_map[maskest])/np.sum(maskest)
+    dep_err_map = np.abs(np.asarray(depest) - np.asarray(dep_gt[0]))
+    dep_err = np.mean(dep_err_map[maskest])
 
     dep_2 = np.sum(dep_err_map[maskest] > 2)/np.sum(maskest)
     dep_4 = np.sum(dep_err_map[maskest] > 4)/np.sum(maskest)
@@ -522,7 +522,7 @@ def obj_analysis(label, obj_ids, dep_gt, dep_est):
     obj_avg_err = np.zeros(17, dtype=int)
     for id in obj_ids:
         mask = (label == id)
-        obj_err = np.linalg.norm(dep_gt[mask] - dep_est[mask])/np.sum(mask)
+        obj_err = np.mean(dep_gt[mask] - dep_est[mask])
         #print(id," ",obj_err)
         if np.sum(mask) == 0:
             obj_err = 0
