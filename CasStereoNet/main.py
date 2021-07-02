@@ -450,7 +450,7 @@ def test_sample(sample, compute_metrics=True):
 
     obj_ct[obj_ids] = 1
 
-    obj_avg_err = obj_analysis(label, obj_ids, dispgt, depest)
+
     #label_rgb = apply_disparity_cu(label, disp_gt_rgb.int())
     #label_rgb = label_rgb.reshape((1,540,960))
     #label = warp(label, disp_rgb)
@@ -463,6 +463,8 @@ def test_sample(sample, compute_metrics=True):
     maskest2 = (depest == 0)
     depest = np.divide(f*b, depest)
     depest[maskest2] = 0
+
+    obj_avg_err = obj_analysis(label, obj_ids, dep_gt_c, depest)
     #print(depest.dtype, dep_gt.dtype, depest.shape, dep_gt.shape)
     dep_err_map = np.asarray(depest) - np.asarray(dep_gt[0])
     dep_err = np.linalg.norm(dep_err_map[maskest])/np.sum(maskest)
@@ -516,11 +518,11 @@ def warp(label, disp):
     label = label_rgb.cpu().numpy()[0]
     return label
 
-def obj_analysis(label, obj_ids, disp_gt, disp_est):
+def obj_analysis(label, obj_ids, dep_gt, dep_est):
     obj_avg_err = np.zeros(17, dtype=int)
     for id in obj_ids:
         mask = (label == id)
-        obj_err = np.linalg.norm(disp_gt[mask] - disp_est[mask])/np.sum(mask)
+        obj_err = np.linalg.norm(dep_gt[mask] - dep_est[mask])/np.sum(mask)
         print(id," ",obj_err)
         obj_avg_err[id] = obj_err
     return obj_avg_err
