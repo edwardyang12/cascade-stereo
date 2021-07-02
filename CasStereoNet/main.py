@@ -522,7 +522,7 @@ def obj_analysis(label, obj_ids, dep_gt, dep_est):
     obj_avg_err = np.zeros(17, dtype=int)
     for id in obj_ids:
         mask = (label == id)
-        obj_err = np.mean(dep_gt[mask] - dep_est[mask])
+        obj_err = np.mean(np.abs(dep_gt[mask] - dep_est[mask]))
         #print(id," ",obj_err)
         if np.sum(mask) == 0:
             obj_err = 0
