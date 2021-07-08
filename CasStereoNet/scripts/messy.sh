@@ -33,11 +33,11 @@ python -m torch.distributed.launch --nproc_per_node=1 /cephfs/jianyu/cs_eval/Cas
     --using_ns \
     --ns_size 3 \
     --model gwcnet-c \
-    --logdir "/cephfs/jianyu/eval/cs_eval"  \
+    --logdir "/cephfs/jianyu/eval/cs_eval_dr"  \
     --ndisps "48,24" \
     --disp_inter_r "4,1"  \
     --batch_size 2 \
     --mode test \
     --summary_freq 500 \
     --test_summary_freq 50 \
-    --loadckpt "/cephfs/jianyu/eval/cs_train_1/checkpoint_best.ckpt"
+    --loadckpt "/cephfs/jianyu/eval/cs_train_dr/checkpoint_best.ckpt"
