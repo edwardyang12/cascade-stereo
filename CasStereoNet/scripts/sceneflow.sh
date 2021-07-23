@@ -14,5 +14,5 @@ python -m torch.distributed.launch --nproc_per_node=$1 main.py --dataset scenefl
     --datapath $DATAPATH --trainlist ./filenames/sceneflow_train.txt --testlist ./filenames/sceneflow_test.txt \
     --test_datapath $DATAPATH --test_dataset sceneflow \
     --epochs 16 --lrepochs "10,12,14,16:2" \
-    --crop_width 512  --crop_height 256 --test_crop_width 960  --test_crop_height 512 --using_ns --ns_size 3 \
+    --crop_width 512  --crop_height 256 --test_crop_width 1248  --test_crop_height 768 --using_ns --ns_size 3 \
     --model gwcnet-c --logdir $save_path  ${@:3} | tee -a  $save_path/log.txt

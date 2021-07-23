@@ -17,8 +17,11 @@ from datasets import __datasets__
 from models import __models__, __loss__
 from utils import *
 import gc
+from warp_ops import apply_disparity_cu
+from math import inf
 
 cudnn.benchmark = True
+onlyObj = False
 assert torch.backends.cudnn.enabled, "Amp requires cudnn backend to be enabled."
 
 parser = argparse.ArgumentParser(description='Cascade Stereo Network (CasStereoNet)')
@@ -200,10 +203,10 @@ if is_distributed:
 
 else:
     TrainImgLoader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
-                                                 shuffle=True, num_workers=8, drop_last=True)
+                                                 shuffle=True, num_workers=6, drop_last=True)
 
     TestImgLoader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size,
-                                                shuffle=False, num_workers=4, drop_last=False)
+                                                shuffle=False, num_workers=6, drop_last=False)
 
 
 num_stage = len([int(nd) for nd in args.ndisps.split(",") if nd])
@@ -215,9 +218,9 @@ def train():
         adjust_learning_rate(optimizer, epoch_idx, args.lr, args.lrepochs)
 
         # training
+        start_time = time.time()
         for batch_idx, sample in enumerate(TrainImgLoader):
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
-            start_time = time.time()
             do_summary = global_step % args.summary_freq == 0
             loss, scalar_outputs, image_outputs = train_sample(sample, compute_metrics=do_summary)
             if (not is_distributed) or (dist.get_rank() == 0):
@@ -234,6 +237,7 @@ def train():
                                                                                            len(TrainImgLoader),
                                                                                            optimizer.param_groups[0]["lr"],
                                                                                            loss, time.time() - start_time))
+                    start_time = time.time()
         # saving checkpoints
         if (epoch_idx + 1) % args.save_freq == 0:
             if (not is_distributed) or (dist.get_rank() == 0):
@@ -292,6 +296,8 @@ def train_sample(sample, compute_metrics=False):
     imgL = imgL.cuda()
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
+    disp_gt = apply_disparity_cu(disp_gt.unsqueeze(1),disp_gt.type(torch.int))
+    disp_gt = torch.squeeze(disp_gt)
 
     optimizer.zero_grad()
 
@@ -308,10 +314,11 @@ def train_sample(sample, compute_metrics=False):
         with torch.no_grad():
             image_outputs["errormap"] = [disp_error_image_func()(disp_est, disp_gt) for disp_est in disp_ests]
             scalar_outputs["EPE"] = [EPE_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
+
             scalar_outputs["D1"] = [D1_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
-            scalar_outputs["Thres1"] = [Thres_metric(disp_est, disp_gt, mask, 1.0) for disp_est in disp_ests]
-            scalar_outputs["Thres2"] = [Thres_metric(disp_est, disp_gt, mask, 2.0) for disp_est in disp_ests]
-            scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
+            scalar_outputs["Bad1"] = [Thres_metric(disp_est, disp_gt, mask, 1.0) for disp_est in disp_ests]
+            scalar_outputs["Bad2"] = [Thres_metric(disp_est, disp_gt, mask, 2.0) for disp_est in disp_ests]
+            # scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
 
     if is_distributed and args.using_apex:
         with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -335,27 +342,63 @@ def test_sample(sample, compute_metrics=True):
         model_eval = model
     model_eval.eval()
 
+    label = []
     imgL, imgR, disp_gt = sample['left'], sample['right'], sample['disparity']
+    if (onlyObj):
+        label = sample['label']
+    intrinsic = sample["intrinsic"][0].double().cuda()
+    baseline = sample["baseline"][0].double().cuda()
+
     imgL = imgL.cuda()
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
+    disp_gt = apply_disparity_cu(disp_gt.unsqueeze(1),disp_gt.type(torch.int))
+    disp_gt = torch.squeeze(disp_gt)
+    disp_gt = disp_gt.unsqueeze(0)
+
+    # convert to gt_depth
+    depth_gt = (baseline*1000*intrinsic[0][0]/2)/(disp_gt)
+    depth_gt[depth_gt==inf] = 0
+
+    depth_mask = (depth_gt > 0.) & (depth_gt < 2000)
+
+    if(onlyObj):
+        depth_gt[sample['label']>=17] = 0
+        depth_mask = (depth_gt > 0.) & (depth_gt < 2000)
 
     outputs = model_eval(imgL, imgR)
 
-    mask = (disp_gt < args.maxdisp) & (disp_gt > 0)
+    disp_mask = (disp_gt < args.maxdisp) & (disp_gt > 0)
+    if(onlyObj):
+        disp_gt[sample['label']>=17] = 0
+        disp_mask = (disp_gt > 0.) & (disp_gt < args.maxdisp)
+
     loss = torch.tensor(0, dtype=imgL.dtype, device=imgL.device, requires_grad=False) #model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in args.dlossw.split(",") if e])
 
     outputs_stage = outputs["stage{}".format(num_stage)]
     disp_ests = [outputs_stage["pred"]]
+    depth_ests = []
+    for i in disp_ests:
+
+        # convert to gt_depth
+        depth_est = (baseline*1000*intrinsic[0][0]/2)/(i)
+        depth_est[depth_est==inf] = 0
+        depth_est = depth_est.cuda()
+        depth_ests.append(depth_est)
 
     scalar_outputs = {"loss": loss}
     image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR}
 
-    scalar_outputs["D1"] = [D1_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
-    scalar_outputs["EPE"] = [EPE_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
-    scalar_outputs["Thres1"] = [Thres_metric(disp_est, disp_gt, mask, 1.0) for disp_est in disp_ests]
-    scalar_outputs["Thres2"] = [Thres_metric(disp_est, disp_gt, mask, 2.0) for disp_est in disp_ests]
-    scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
+    scalar_outputs["D1"] = [D1_metric(disp_est, disp_gt, disp_mask) for disp_est in disp_ests]
+    scalar_outputs["EPE"] = [EPE_metric(disp_est, disp_gt, disp_mask) for disp_est in disp_ests]
+    scalar_outputs["Bad1"] = [Thres_metric(disp_est, disp_gt, disp_mask, 1.0) for disp_est in disp_ests]
+    scalar_outputs["Bad2"] = [Thres_metric(disp_est, disp_gt, disp_mask, 2.0) for disp_est in disp_ests]
+
+    scalar_outputs["Abs"] = [EPE_metric(depth_est, depth_gt, depth_mask) for depth_est in depth_ests]
+    scalar_outputs["MM1"] = [Thres_metric(depth_est, depth_gt, depth_mask, 2.0) for depth_est in depth_ests]
+    scalar_outputs["MM2"] = [Thres_metric(depth_est, depth_gt, depth_mask, 4.0) for depth_est in depth_ests]
+
+    # scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
 
     if compute_metrics:
         image_outputs["errormap"] = [disp_error_image_func()(disp_est, disp_gt) for disp_est in disp_ests]
@@ -369,8 +412,9 @@ def test_sample(sample, compute_metrics=True):
 def test_all():
     # testing
     avg_test_scalars = AverageMeterDict()
+    start_time = time.time()
     for batch_idx, sample in enumerate(TestImgLoader):
-        start_time = time.time()
+
         do_summary = batch_idx % args.summary_freq == 0
         loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=False)
         if (not is_distributed) or (dist.get_rank() == 0):
@@ -378,7 +422,7 @@ def test_all():
             if do_summary:
                 save_scalars(logger, 'test', scalar_outputs, batch_idx)
                 save_images(logger, 'test', image_outputs, batch_idx)
-            del scalar_outputs, image_outputs
+
             if batch_idx % args.log_freq == 0:
                 if isinstance(loss, (list, tuple)):
                     loss = loss[0]
@@ -386,6 +430,9 @@ def test_all():
                                                                              batch_idx,
                                                                              len(TestImgLoader), loss,
                                                                              time.time() - start_time))
+                print(scalar_outputs)
+                start_time = time.time()
+            del scalar_outputs, image_outputs
     if (not is_distributed) or (dist.get_rank() == 0):
         avg_test_scalars = avg_test_scalars.mean()
         save_scalars(logger, 'fulltest', avg_test_scalars, len(TestImgLoader))
@@ -396,4 +443,3 @@ if __name__ == '__main__':
         train()
     elif args.mode == 'test':
         test_all()
-
