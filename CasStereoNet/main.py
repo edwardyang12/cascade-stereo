@@ -82,6 +82,8 @@ parser.add_argument('--opt-level', type=str, default="O0")
 parser.add_argument('--keep-batchnorm-fp32', type=str, default=None)
 parser.add_argument('--loss-scale', type=str, default=None)
 
+parser.add_argument('--ground', action='store_true', help='include ground pixel')
+
 
 
 
@@ -458,7 +460,10 @@ def test_sample(sample, compute_metrics=True):
     #label = label.cpu().numpy()[0]
     #print(label.shape)
     #print(dispgt.shape)
-    maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (dep_gt_c <= 1250)
+    if args.ground:
+        maskest = (dispgt < args.maxdisp) & (dispgt > 0)
+    else:
+        maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (dep_gt_c <= 1250) & (dep_gt_c > 0)
     #print("mask:", np.sum(maskest))
     #print("back:", np.sum(label == 18))
     maskest2 = (depest == 0)
