@@ -16,6 +16,8 @@ from tensorboardX import SummaryWriter
 from datasets import __datasets__
 from models import __models__, __loss__
 from utils import *
+from utils.metrics import compute_err_metric
+from utils.warp_ops import apply_disparity_cu
 import gc
 
 cudnn.benchmark = True
@@ -26,11 +28,11 @@ parser.add_argument('--model', default='gwcnet-c', help='select a model structur
 parser.add_argument('--maxdisp', type=int, default=192, help='maximum disparity')
 
 parser.add_argument('--dataset', required=True, help='dataset name', choices=__datasets__.keys())
-parser.add_argument('--datapath', required=True, help='data path')
-parser.add_argument('--test_dataset', required=True, help='dataset name', choices=__datasets__.keys())
-parser.add_argument('--test_datapath', required=True, help='data path')
-parser.add_argument('--trainlist', required=True, help='training list')
-parser.add_argument('--testlist', required=True, help='testing list')
+parser.add_argument('--datapath', required=False, help='data path')
+parser.add_argument('--test_dataset', required=False, help='dataset name', choices=__datasets__.keys())
+parser.add_argument('--test_datapath', required=False, help='data path')
+parser.add_argument('--trainlist', required=False, help='training list')
+parser.add_argument('--testlist', required=False, help='testing list')
 
 parser.add_argument('--lr', type=float, default=0.001, help='base learning rate')
 parser.add_argument('--batch_size', type=int, default=1, help='training batch size')
@@ -63,16 +65,19 @@ parser.add_argument('--grad_method', type=str, default="detach", choices=["detac
 parser.add_argument('--using_ns', action='store_true', help='using neighbor search')
 parser.add_argument('--ns_size', type=int, default=3, help='nb_size')
 
-parser.add_argument('--crop_height', type=int, required=True, help="crop height")
-parser.add_argument('--crop_width', type=int, required=True, help="crop width")
-parser.add_argument('--test_crop_height', type=int, required=True, help="crop height")
-parser.add_argument('--test_crop_width', type=int, required=True, help="crop width")
+parser.add_argument('--crop_height', type=int, default=256, required=False, help="crop height")
+parser.add_argument('--crop_width', type=int, default=512, required=False, help="crop width")
+parser.add_argument('--test_crop_height', type=int, default=480, required=False, help="crop height")
+parser.add_argument('--test_crop_width', type=int, default=720, required=False, help="crop width")
 
 parser.add_argument('--using_apex', action='store_true', help='using apex, need to install apex')
 parser.add_argument('--sync_bn', action='store_true',help='enabling apex sync BN.')
 parser.add_argument('--opt-level', type=str, default="O0")
 parser.add_argument('--keep-batchnorm-fp32', type=str, default=None)
 parser.add_argument('--loss-scale', type=str, default=None)
+
+parser.add_argument('--debug', action='store_true', help='whether run in debug mode')
+parser.add_argument('--warp_op', action='store_true', help='whether use warp_op function to get disparity')
 
 
 # parse arguments
@@ -93,7 +98,8 @@ if args.using_apex:
 
 #dis
 num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
-is_distributed = num_gpus > 1
+# is_distributed = num_gpus > 1
+is_distributed = False
 args.is_distributed = is_distributed
 
 if is_distributed:
@@ -181,12 +187,17 @@ else:
 # dataset, dataloader
 StereoDataset = __datasets__[args.dataset]
 Test_StereoDataset = __datasets__[args.test_dataset]
-train_dataset = StereoDataset(args.datapath, args.trainlist, True,
-                              crop_height=args.crop_height, crop_width=args.crop_width,
-                              test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width)
-test_dataset = Test_StereoDataset(args.test_datapath, args.testlist, False,
-                             crop_height=args.crop_height, crop_width=args.crop_width,
-                             test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width)
+if args.dataset == 'messytable':
+    from utils.messytable_dataset_config import cfg
+    train_dataset = StereoDataset(cfg.SPLIT.TRAIN, args.debug, sub=100)
+    test_dataset = Test_StereoDataset(cfg.SPLIT.VAL, args.debug, sub=10)
+else:
+    train_dataset = StereoDataset(args.datapath, args.trainlist, True,
+                                  crop_height=args.crop_height, crop_width=args.crop_width,
+                                  test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width)
+    test_dataset = Test_StereoDataset(args.test_datapath, args.testlist, False,
+                                 crop_height=args.crop_height, crop_width=args.crop_width,
+                                 test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width)
 if is_distributed:
     train_sampler = torch.utils.data.DistributedSampler(train_dataset, num_replicas=dist.get_world_size(),
                                                         rank=dist.get_rank())
@@ -200,10 +211,10 @@ if is_distributed:
 
 else:
     TrainImgLoader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
-                                                 shuffle=True, num_workers=8, drop_last=True)
+                                                 shuffle=True, num_workers=1, drop_last=True)
 
     TestImgLoader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size,
-                                                shuffle=False, num_workers=4, drop_last=False)
+                                                shuffle=False, num_workers=1, drop_last=False)
 
 
 num_stage = len([int(nd) for nd in args.ndisps.split(",") if nd])
@@ -214,17 +225,28 @@ def train():
     for epoch_idx in range(start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch_idx, args.lr, args.lrepochs)
 
+        total_loss = 0
+        total_err_metrics = {'epe': 0, 'bad1': 0, 'bad2': 0,
+                             'depth_abs_err': 0, 'depth_err2': 0, 'depth_err4': 0, 'depth_err8': 0}
+
         # training
         for batch_idx, sample in enumerate(TrainImgLoader):
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
             start_time = time.time()
-            do_summary = global_step % args.summary_freq == 0
-            loss, scalar_outputs, image_outputs = train_sample(sample, compute_metrics=do_summary)
+            # do_summary = global_step % args.summary_freq == 0
+            do_summary = True
+            # loss, scalar_outputs, image_outputs = train_sample(sample, compute_metrics=do_summary)
+            loss, err_metrics = train_sample(sample, compute_metrics=do_summary)
             if (not is_distributed) or (dist.get_rank() == 0):
                 if do_summary:
-                    save_scalars(logger, 'train', scalar_outputs, global_step)
-                    save_images(logger, 'train', image_outputs, global_step)
-                del scalar_outputs, image_outputs
+                    # save_scalars(logger, 'train', scalar_outputs, global_step)
+                    # save_images(logger, 'train', image_outputs, global_step)
+                    for k in total_err_metrics.keys():
+                        total_err_metrics[k] += err_metrics[k]
+                    if isinstance(loss, (list, tuple)):
+                        loss = loss[0]
+                    total_loss += loss
+                # del scalar_outputs, image_outputs
                 if batch_idx % args.log_freq == 0:
                     if isinstance(loss, (list, tuple)):
                         loss = loss[0]
@@ -234,6 +256,20 @@ def train():
                                                                                            len(TrainImgLoader),
                                                                                            optimizer.param_groups[0]["lr"],
                                                                                            loss, time.time() - start_time))
+        for k in total_err_metrics.keys():
+            total_err_metrics[k] /= len(TrainImgLoader)
+        total_loss /= len(TrainImgLoader)
+        print(f'Epoch {epoch_idx} train_loss: {total_loss} total_err_metrics: {total_err_metrics}')
+        logger.add_scalar('loss/train', total_loss, global_step=epoch_idx)
+        logger.add_scalar('disp_epe/train', total_err_metrics['epe'], global_step=epoch_idx)
+        logger.add_scalar('disp_bad1/train', total_err_metrics['bad1'], global_step=epoch_idx)
+        logger.add_scalar('disp_bad2/train', total_err_metrics['bad2'], global_step=epoch_idx)
+        logger.add_scalar('depth_abs_err/train', total_err_metrics['depth_abs_err'], global_step=epoch_idx)
+        logger.add_scalar('depth_abs_err_2mm/train', total_err_metrics['depth_err2'], global_step=epoch_idx)
+        logger.add_scalar('depth_abs_err_4mm/train', total_err_metrics['depth_err4'], global_step=epoch_idx)
+        logger.add_scalar('depth_abs_err_8mm/train', total_err_metrics['depth_err8'], global_step=epoch_idx)
+        logger.add_scalar('lr', optimizer.param_groups[0]['lr'], global_step=epoch_idx)
+
         # saving checkpoints
         if (epoch_idx + 1) % args.save_freq == 0:
             if (not is_distributed) or (dist.get_rank() == 0):
@@ -244,42 +280,64 @@ def train():
 
         if (epoch_idx % args.eval_freq == 0) or (epoch_idx == args.epochs - 1):
             # testing
+            total_loss = 0
+            total_err_metrics = {'epe': 0, 'bad1': 0, 'bad2': 0,
+                                 'depth_abs_err': 0, 'depth_err2': 0, 'depth_err4': 0, 'depth_err8': 0}
+
             avg_test_scalars = AverageMeterDict()
             for batch_idx, sample in enumerate(TestImgLoader):
                 global_step = len(TestImgLoader) * epoch_idx + batch_idx
                 start_time = time.time()
-                do_summary = global_step % args.summary_freq == 0
-                loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=do_summary)
+                # do_summary = global_step % args.summary_freq == 0
+                do_summary = True
+                loss, err_metrics = test_sample(sample, compute_metrics=do_summary)
                 if (not is_distributed) or (dist.get_rank() == 0):
                     if do_summary:
-                        save_scalars(logger, 'test', scalar_outputs, global_step)
-                        save_images(logger, 'test', image_outputs, global_step)
-                    avg_test_scalars.update(scalar_outputs)
-                    del scalar_outputs, image_outputs
-                    if batch_idx % args.log_freq == 0:
+                        # save_scalars(logger, 'train', scalar_outputs, global_step)
+                        # save_images(logger, 'train', image_outputs, global_step)
+                        for k in total_err_metrics.keys():
+                            total_err_metrics[k] += err_metrics[k]
                         if isinstance(loss, (list, tuple)):
                             loss = loss[0]
-                        print('Epoch {}/{}, Iter {}/{}, test loss = {:.3f}, time = {:3f}'.format(epoch_idx, args.epochs,
-                                                                                             batch_idx,
-                                                                                             len(TestImgLoader), loss,
-                                                                                             time.time() - start_time))
-            if (not is_distributed) or (dist.get_rank() == 0):
-                avg_test_scalars = avg_test_scalars.mean()
-                save_scalars(logger, 'fulltest', avg_test_scalars, len(TrainImgLoader) * (epoch_idx + 1))
-                print("avg_test_scalars", avg_test_scalars)
+                        total_loss += loss
+                    # avg_test_scalars.update(scalar_outputs)
+                    # del scalar_outputs, image_outputs
+                    # if batch_idx % args.log_freq == 0:
+                    #     if isinstance(loss, (list, tuple)):
+                    #         loss = loss[0]
+                    #     print('Epoch {}/{}, Iter {}/{}, test loss = {:.3f}, time = {:3f}'.format(epoch_idx, args.epochs,
+                    #                                                                          batch_idx,
+                    #                                                                          len(TestImgLoader), loss,
+                    #                                                                          time.time() - start_time))
+            # if (not is_distributed) or (dist.get_rank() == 0):
+            #     avg_test_scalars = avg_test_scalars.mean()
+            #     save_scalars(logger, 'fulltest', avg_test_scalars, len(TrainImgLoader) * (epoch_idx + 1))
+            #     print("avg_test_scalars", avg_test_scalars)
 
-            # saving bset checkpoints
-            if (not is_distributed) or (dist.get_rank() == 0):
-                if avg_test_scalars is not None:
-                    New_D1 = avg_test_scalars["D1"][0]
-                    if New_D1 < Cur_D1:
-                        Cur_D1 = New_D1
-                        #save
-                        checkpoint_data = {'epoch': epoch_idx, 'model': model.module.state_dict(),
-                                           'optimizer': optimizer.state_dict()}
-                        save_filename = "{}/checkpoint_best.ckpt".format(args.logdir)
-                        torch.save(checkpoint_data, save_filename)
-                        print("Best Checkpoint epoch_idx:{}".format(epoch_idx))
+            for k in total_err_metrics.keys():
+                total_err_metrics[k] /= len(TestImgLoader)
+            total_loss /= len(TestImgLoader)
+            print(f'Epoch {epoch_idx} total_err_metrics: {total_err_metrics}')
+            logger.add_scalar('disp_epe/val', total_err_metrics['epe'], global_step=epoch_idx)
+            logger.add_scalar('disp_bad1/val', total_err_metrics['bad1'], global_step=epoch_idx)
+            logger.add_scalar('disp_bad2/val', total_err_metrics['bad2'], global_step=epoch_idx)
+            logger.add_scalar('depth_abs_err/val', total_err_metrics['depth_abs_err'], global_step=epoch_idx)
+            logger.add_scalar('depth_abs_err_2mm/val', total_err_metrics['depth_err2'], global_step=epoch_idx)
+            logger.add_scalar('depth_abs_err_4mm/val', total_err_metrics['depth_err4'], global_step=epoch_idx)
+            logger.add_scalar('depth_abs_err_8mm/val', total_err_metrics['depth_err8'], global_step=epoch_idx)
+
+            # # saving bset checkpoints
+            # if (not is_distributed) or (dist.get_rank() == 0):
+            #     if avg_test_scalars is not None:
+            #         New_D1 = avg_test_scalars["D1"][0]
+            #         if New_D1 < Cur_D1:
+            #             Cur_D1 = New_D1
+            #             #save
+            #             checkpoint_data = {'epoch': epoch_idx, 'model': model.module.state_dict(),
+            #                                'optimizer': optimizer.state_dict()}
+            #             save_filename = "{}/checkpoint_best.ckpt".format(args.logdir)
+            #             torch.save(checkpoint_data, save_filename)
+            #             print("Best Checkpoint epoch_idx:{}".format(epoch_idx))
 
             gc.collect()
 
@@ -288,30 +346,55 @@ def train():
 def train_sample(sample, compute_metrics=False):
     model.train()
 
-    imgL, imgR, disp_gt = sample['left'], sample['right'], sample['disparity']
+    if args.dataset == 'messytable':
+        imgL, imgR, disp_gt = sample['img_L'], sample['img_R'], sample['img_disp_l']
+        depth_gt = sample['img_depth_l'].cuda()  # [bs, 1, H, W]
+        img_focal_length = sample['focal_length'].cuda()
+        img_baseline = sample['baseline'].cuda()
+    else:
+        imgL, imgR, disp_gt = sample['left'], sample['right'], sample['disparity']
     imgL = imgL.cuda()
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
 
+    if args.warp_op:
+        img_disp_r = sample['img_disp_r'].cuda()
+        disp_gt = apply_disparity_cu(img_disp_r, img_disp_r.type(torch.int))  # [bs, 1, H, W]
+        del img_disp_r
+    if args.dataset == 'messytable':
+        disp_gt = F.interpolate(disp_gt, (256, 512)).squeeze(1) # [bs, H, W]
+        depth_gt = F.interpolate(depth_gt, (256, 512))  # [bs, 1, H, W]
+
     optimizer.zero_grad()
 
     outputs = model(imgL, imgR)
-    mask = (disp_gt < args.maxdisp) & (disp_gt > 0)
+    # mask = (disp_gt < args.maxdisp) & (disp_gt > 0)
+    img_ground_mask = (depth_gt > 0) & (depth_gt < 1.25)
+    img_ground_mask = img_ground_mask.squeeze(1)  # [bs, H, W]
+    mask = (disp_gt < args.maxdisp) * (disp_gt > 0)
     loss = model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in args.dlossw.split(",") if e])
 
     outputs_stage = outputs["stage{}".format(num_stage)]
-    disp_ests = [outputs_stage["pred1"], outputs_stage["pred2"], outputs_stage["pred3"]]
+    # disp_ests = [outputs_stage["pred1"], outputs_stage["pred2"], outputs_stage["pred3"]]
+    disp_pred = outputs_stage['pred']  # [bs, H, W]
+    del outputs
 
     scalar_outputs = {"loss": loss}
-    image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR}
+    # image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR}
     if compute_metrics:
-        with torch.no_grad():
-            image_outputs["errormap"] = [disp_error_image_func()(disp_est, disp_gt) for disp_est in disp_ests]
-            scalar_outputs["EPE"] = [EPE_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
-            scalar_outputs["D1"] = [D1_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
-            scalar_outputs["Thres1"] = [Thres_metric(disp_est, disp_gt, mask, 1.0) for disp_est in disp_ests]
-            scalar_outputs["Thres2"] = [Thres_metric(disp_est, disp_gt, mask, 2.0) for disp_est in disp_ests]
-            scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
+        err_metrics = compute_err_metric(disp_gt.unsqueeze(1),
+                        depth_gt,
+                        disp_pred.unsqueeze(1),
+                        img_focal_length,
+                        img_baseline,
+                        mask.unsqueeze(1))
+        # with torch.no_grad():
+        #     image_outputs["errormap"] = [disp_error_image_func()(disp_est, disp_gt) for disp_est in disp_ests]
+        #     scalar_outputs["EPE"] = [EPE_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
+        #     scalar_outputs["D1"] = [D1_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
+        #     scalar_outputs["Thres1"] = [Thres_metric(disp_est, disp_gt, mask, 1.0) for disp_est in disp_ests]
+        #     scalar_outputs["Thres2"] = [Thres_metric(disp_est, disp_gt, mask, 2.0) for disp_est in disp_ests]
+        #     scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
 
     if is_distributed and args.using_apex:
         with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -323,8 +406,8 @@ def train_sample(sample, compute_metrics=False):
     if is_distributed:
         scalar_outputs = reduce_scalar_outputs(scalar_outputs)
 
-    return tensor2float(scalar_outputs["loss"]), tensor2float(scalar_outputs), image_outputs
-
+    # return tensor2float(scalar_outputs["loss"]), tensor2float(scalar_outputs), image_outputs
+    return tensor2float(scalar_outputs["loss"]), err_metrics
 
 # test one sample
 @make_nograd_func
@@ -335,35 +418,63 @@ def test_sample(sample, compute_metrics=True):
         model_eval = model
     model_eval.eval()
 
-    imgL, imgR, disp_gt = sample['left'], sample['right'], sample['disparity']
+    if args.dataset == 'messytable':
+        imgL, imgR, disp_gt = sample['img_L'], sample['img_R'], sample['img_disp_l']
+        depth_gt = sample['img_depth_l'].cuda()  # [bs, 1, H, W]
+        img_focal_length = sample['focal_length'].cuda()
+        img_baseline = sample['baseline'].cuda()
+    else:
+        imgL, imgR, disp_gt = sample['left'], sample['right'], sample['disparity']
     imgL = imgL.cuda()
     imgR = imgR.cuda()
     disp_gt = disp_gt.cuda()
 
+    if args.warp_op:
+        img_disp_r = sample['img_disp_r'].cuda()
+        disp_gt = apply_disparity_cu(img_disp_r, img_disp_r.type(torch.int))  # [bs, 1, H, W]
+        del img_disp_r
+    if args.dataset == 'messytable':
+        disp_gt = F.interpolate(disp_gt, (256, 512)).squeeze(1) # [bs, H, W]
+        depth_gt = F.interpolate(depth_gt, (256, 512))
+
     outputs = model_eval(imgL, imgR)
 
-    mask = (disp_gt < args.maxdisp) & (disp_gt > 0)
-    loss = torch.tensor(0, dtype=imgL.dtype, device=imgL.device, requires_grad=False) #model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in args.dlossw.split(",") if e])
+    # mask = (disp_gt < args.maxdisp) & (disp_gt > 0)
+    img_ground_mask = (depth_gt > 0) & (depth_gt < 1.25)
+    img_ground_mask = img_ground_mask.squeeze(1)  # [bs, H, W]
+    mask = (disp_gt < args.maxdisp) * (disp_gt > 0)
+    loss = torch.tensor(0, dtype=imgL.dtype, device=imgL.device, requires_grad=False)
+    # loss = model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in args.dlossw.split(",") if e])
 
     outputs_stage = outputs["stage{}".format(num_stage)]
-    disp_ests = [outputs_stage["pred"]]
+    # disp_pred = [outputs_stage["pred"]]
+    disp_pred = outputs_stage["pred"]
 
     scalar_outputs = {"loss": loss}
-    image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR}
+    # image_outputs = {"disp_est": disp_ests, "disp_gt": disp_gt, "imgL": imgL, "imgR": imgR}
 
-    scalar_outputs["D1"] = [D1_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
-    scalar_outputs["EPE"] = [EPE_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
-    scalar_outputs["Thres1"] = [Thres_metric(disp_est, disp_gt, mask, 1.0) for disp_est in disp_ests]
-    scalar_outputs["Thres2"] = [Thres_metric(disp_est, disp_gt, mask, 2.0) for disp_est in disp_ests]
-    scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
+    err_metrics = compute_err_metric(disp_gt.unsqueeze(1),
+                                     depth_gt,
+                                     disp_pred.unsqueeze(1),
+                                     img_focal_length,
+                                     img_baseline,
+                                     mask.unsqueeze(1))
 
-    if compute_metrics:
-        image_outputs["errormap"] = [disp_error_image_func()(disp_est, disp_gt) for disp_est in disp_ests]
+    # scalar_outputs["D1"] = [D1_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
+    # scalar_outputs["EPE"] = [EPE_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
+    # scalar_outputs["Thres1"] = [Thres_metric(disp_est, disp_gt, mask, 1.0) for disp_est in disp_ests]
+    # scalar_outputs["Thres2"] = [Thres_metric(disp_est, disp_gt, mask, 2.0) for disp_est in disp_ests]
+    # scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
+
+    # if compute_metrics:
+    #     image_outputs["errormap"] = [disp_error_image_func()(disp_est, disp_gt) for disp_est in disp_ests]
 
     if is_distributed:
         scalar_outputs = reduce_scalar_outputs(scalar_outputs)
+        err_metrics = reduce_scalar_outputs(err_metrics)
 
-    return tensor2float(scalar_outputs["loss"]), tensor2float(scalar_outputs), image_outputs
+    # return tensor2float(scalar_outputs["loss"]), tensor2float(scalar_outputs), image_outputs
+    return tensor2float(scalar_outputs["loss"]), err_metrics
 
 
 def test_all():
