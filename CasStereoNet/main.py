@@ -415,7 +415,7 @@ def test_sample(sample, compute_metrics=True):
 
 
 
-    disp_gt = disparity_L_from_R.reshape((768,1248)).cpu().numpy()
+    disp_gt = disparity_L_from_R.reshape((544,960)).cpu().numpy()
     #label_rgb = label_rgb.reshape((1,540,960)).cuda()
 
     disp_gt = cv2.medianBlur(disp_gt,3)
