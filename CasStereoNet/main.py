@@ -466,7 +466,7 @@ def test_sample(sample, compute_metrics=True):
     if args.ground:
         maskest = (dispgt < args.maxdisp) & (dispgt > 0)
     else:
-        maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (dep_gt_c <= 1250) & (dep_gt_c > 0)
+        maskest = (dispgt < args.maxdisp) & (dispgt > 0) & (dep_gt_c < 1250) & (dep_gt_c > 0)
     #print("mask:", np.sum(maskest))
     #print("back:", np.sum(label == 18))
     maskest2 = (depest == 0)
