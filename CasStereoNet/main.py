@@ -444,8 +444,7 @@ def test_sample(sample, compute_metrics=True):
     dispgt = disp_gt.cpu().numpy()[0]
     dispgt = dispgt[4:,:]
 
-    dep_gt = dep_gt.reshape((1,1,540,960))
-    print(dep_gt.device.type, disp_gt_t.device.type)
+    dep_gt = dep_gt.reshape((1,1,540,960)).cuda()
     dep_gt = apply_disparity_cu(dep_gt, disp_gt_t.int()[:,:,4:,:]).reshape((1,540,960))
 
     dep_gt_c = dep_gt.cpu().numpy()[0]
