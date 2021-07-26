@@ -440,9 +440,9 @@ def test_sample(sample, compute_metrics=True):
 
 
     depest = disp_ests[0].cpu().numpy()[0]
-    depest = depest[228:,:960]
+    depest = depest[4:,:]
     dispgt = disp_gt.cpu().numpy()[0]
-    dispgt = dispgt[228:,:960]
+    dispgt = dispgt[4:,:]
 
     dep_gt_c = dep_gt.cpu().numpy()[0]
     obj_ids = obj_ids.cpu().numpy()[0]
@@ -484,8 +484,8 @@ def test_sample(sample, compute_metrics=True):
 
     disp_ests_bad = disp_ests[0].cpu().numpy()[0]
     disp_ests_gt_bad = disp_gt.cpu().numpy()[0]
-    disp_ests_bad = disp_ests_bad[228:,:960]
-    disp_ests_gt_bad = disp_ests_gt_bad[228:,:960]
+    disp_ests_bad = disp_ests_bad[4:,:]
+    disp_ests_gt_bad = disp_ests_gt_bad[4:,:]
 
     #print(disp_ests_bad.shape, disp_ests_gt_bad.shape)
     bad1 = np.sum(np.abs(disp_ests_bad - disp_ests_gt_bad)[maskest] > 1)/np.sum(maskest)
@@ -494,7 +494,7 @@ def test_sample(sample, compute_metrics=True):
     #dep_gt = disp_gt
 
     scalar_outputs["D1"] = [D1_metric(disp_est, disp_gt, mask) for disp_est in disp_ests]
-    scalar_outputs["EPE"] = [EPE_metric(disp_est[:,228:,:960], disp_gt[:,228:,:960], torch.tensor(maskest).reshape((1,540,960))) for disp_est in disp_ests]
+    scalar_outputs["EPE"] = [EPE_metric(disp_est[:,4:,:], disp_gt[:,4:,:], torch.tensor(maskest).reshape((1,540,960))) for disp_est in disp_ests]
     scalar_outputs["Thres1"] = [Thres_metric(disp_est, disp_gt, mask, 1.0) for disp_est in disp_ests]
     scalar_outputs["Thres2"] = [Thres_metric(disp_est, disp_gt, mask, 2.0) for disp_est in disp_ests]
     scalar_outputs["Thres3"] = [Thres_metric(disp_est, disp_gt, mask, 3.0) for disp_est in disp_ests]
@@ -506,10 +506,10 @@ def test_sample(sample, compute_metrics=True):
     scalar_outputs["dep8"] = [dep_8]
 
     label = torch.tensor(label, dtype=float).reshape((1,540,960))
-    image_outputs = {"disp_est": disp_ests[0][:,228:,:960], "disp_gt": disp_gt[:,228:,:960], "imgL": imgL[:,:,228:,:960], "imgR": imgR[:,:,228:,:960], "label": label}
+    image_outputs = {"disp_est": disp_ests[0][:,4:,:], "disp_gt": disp_gt[:,4:,:], "imgL": imgL[:,:,4:,:], "imgR": imgR[:,:,4:,:], "label": label}
 
     if compute_metrics:
-        image_outputs["errormap"] = [(disp_error_image_func.apply(disp_est, disp_gt))[:,:,228:,:960] for disp_est in disp_ests]
+        image_outputs["errormap"] = [(disp_error_image_func.apply(disp_est, disp_gt))[:,:,4:,:] for disp_est in disp_ests]
 
     if is_distributed:
         scalar_outputs = reduce_scalar_outputs(scalar_outputs)
