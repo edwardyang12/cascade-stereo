@@ -404,7 +404,7 @@ def test_sample(sample, compute_metrics=True):
     disp_gt = disp_gt.cuda()
 
     #print(disp_gt.shape)
-    disp_gt_t = disp_gt.reshape((1,1,768,1248))
+    disp_gt_t = disp_gt.reshape((1,1,544,960))
     #disp_gt_rgb = disp_rgb.reshape((1,1,540,960)).cuda()
     #label = label.reshape((1,1,540,960)).cuda()
     #print(torch.max(disp_gt_t), torch.max(disp_gt_t.int()), torch.min(disp_gt_t), torch.min(disp_gt_t.int()))
@@ -420,7 +420,7 @@ def test_sample(sample, compute_metrics=True):
 
     disp_gt = cv2.medianBlur(disp_gt,3)
 
-    disp_gt = torch.from_numpy(disp_gt).cuda().reshape((1,768,1248))
+    disp_gt = torch.from_numpy(disp_gt).cuda().reshape((1,544,960))
 
 
     outputs = model_eval(imgL, imgR)
