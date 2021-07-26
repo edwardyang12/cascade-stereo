@@ -187,7 +187,7 @@ class MESSYDataset(Dataset):
             # pad to size 1248x384
             top_pad = self.test_crop_height - h
             right_pad = self.test_crop_width - w
-            assert top_pad > 0 and right_pad > 0
+            #assert top_pad > 0 and right_pad > 0
             # pad images
             left_img = np.lib.pad(left_img, ((0, 0), (top_pad, 0), (0, right_pad)), mode='constant', constant_values=0)
             right_img = np.lib.pad(right_img, ((0, 0), (top_pad, 0), (0, right_pad)), mode='constant',
