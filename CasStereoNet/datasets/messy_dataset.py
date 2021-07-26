@@ -203,7 +203,7 @@ class MESSYDataset(Dataset):
                         "disparity": disparity_R,
                         "top_pad": top_pad,
                         "right_pad": right_pad,
-                        "depth": depthL,
+                        "depth": depthR,
                         "baseline": b,
                         "label": label,
                         "obj_ids": obj_ids,
