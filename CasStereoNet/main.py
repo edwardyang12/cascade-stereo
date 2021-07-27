@@ -363,14 +363,14 @@ def test_sample(sample, compute_metrics=True):
     depth_mask = (depth_gt > 0.) & (depth_gt < 2000)
 
     if(onlyObj):
-        depth_gt[sample['label']>=17] = 0
-        depth_mask = (depth_gt > 0.) & (depth_gt < 2000)
+        # depth_gt[sample['label']>=17] = 0
+        depth_mask = (depth_gt > 0.) & (depth_gt < 1250)
 
     outputs = model_eval(imgL, imgR)
 
     disp_mask = (disp_gt < args.maxdisp) & (disp_gt > 0)
     if(onlyObj):
-        disp_gt[sample['label']>=17] = 0
+        # disp_gt[sample['label']>=17] = 0
         disp_mask = (disp_gt > 0.) & (disp_gt < args.maxdisp)
 
     loss = torch.tensor(0, dtype=imgL.dtype, device=imgL.device, requires_grad=False) #model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in args.dlossw.split(",") if e])
