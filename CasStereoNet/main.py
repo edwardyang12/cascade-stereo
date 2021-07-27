@@ -21,7 +21,7 @@ from warp_ops import apply_disparity_cu
 from math import inf
 
 cudnn.benchmark = True
-onlyObj = False
+onlyObj = True
 assert torch.backends.cudnn.enabled, "Amp requires cudnn backend to be enabled."
 
 parser = argparse.ArgumentParser(description='Cascade Stereo Network (CasStereoNet)')
