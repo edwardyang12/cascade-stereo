@@ -217,7 +217,6 @@ def test(model, val_loader, logger, log_dir):
             img_ground_mask = (img_depth_l > 0) & (img_depth_l < 1.25)
             mask = (img_disp_l < cfg.ARGS.MAX_DISP) * (img_disp_l > 0) * img_ground_mask
         else:
-            img_ground_mask = torch.ones_like(img_depth_l).type(torch.bool)
             mask = (img_disp_l < cfg.ARGS.MAX_DISP) * (img_disp_l > 0)
         mask = mask.type(torch.bool)
         mask.detach_()  # [bs, 1, H, W]
@@ -254,7 +253,7 @@ def test(model, val_loader, logger, log_dir):
         gt_disp_np[ground_mask] = -1
 
         # Get disparity error image
-        pred_disp_err_np = disp_error_img(pred_disp, img_disp_l, img_ground_mask)
+        pred_disp_err_np = disp_error_img(pred_disp, img_disp_l, mask)
 
         # Get depth image
         pred_depth_np = pred_depth.squeeze(0).squeeze(0).detach().cpu().numpy()  # in m, [H, W]
@@ -268,7 +267,7 @@ def test(model, val_loader, logger, log_dir):
         gt_depth_np[ground_mask] = -1
 
         # Get depth error image
-        pred_depth_err_np = depth_error_img(pred_depth * 1000, img_depth_l * 1000, img_ground_mask)
+        pred_depth_err_np = depth_error_img(pred_depth * 1000, img_depth_l * 1000, mask)
 
         del pred_disp, pred_depth, outputs, img_L, img_R
 
@@ -306,7 +305,7 @@ def main():
     # Get the model
     logger.info(f'Loaded the checkpoint: {args.model}')
     model = PSMNet(
-        maxdisp=cfg.ARGS.MAXDISP,
+        maxdisp=cfg.ARGS.MAX_DISP,
         ndisps=[int(nd) for nd in cfg.ARGS.NDISP.split(",") if nd],
         disp_interval_pixel=[float(d_i) for d_i in cfg.ARGS.DISP_INTER_R.split(",") if d_i],
         cr_base_chs=[int(ch) for ch in cfg.ARGS.CR_BASE_CHS.split(",") if ch],
