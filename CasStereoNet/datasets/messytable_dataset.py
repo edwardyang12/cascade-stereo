@@ -85,7 +85,7 @@ class MessytableDataset(Dataset):
         img_disp_r = np.zeros_like(img_depth_r)
         img_disp_r[mask] = focal_length * baseline / img_depth_r[mask]
 
-        # random crop the image to a fixed size  image origin 540*960
+        # random crop the image to 256 * 512
         h, w = img_L_rgb.shape[:2]
         # th, tw = h//2, w//2
         th, tw = 256, 512

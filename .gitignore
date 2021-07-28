@@ -21,4 +21,5 @@ real_dataset_local_v9
 # Outputs
 outputs/
 outputs_sim_real/
+local_train/
 *.ckpt
