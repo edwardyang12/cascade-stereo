@@ -432,6 +432,8 @@ def test_sample(sample, compute_metrics=True):
     outputs_stage = outputs["stage{}".format(num_stage)]
     disp_ests = [outputs_stage["pred"]]
 
+    #print(disp_ests)
+
     scalar_outputs = {"loss": loss}
     #obj_err = np.zeros(17)
     obj_ct = np.zeros(17, dtype=int)
