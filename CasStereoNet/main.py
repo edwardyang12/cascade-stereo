@@ -77,10 +77,12 @@ parser.add_argument('--opt-level', type=str, default="O0")
 parser.add_argument('--keep-batchnorm-fp32', type=str, default=None)
 parser.add_argument('--loss-scale', type=str, default=None)
 
-parser.add_argument('--debug', action='store_true', help='whether run in debug mode')
-parser.add_argument('--warp_op', action='store_true', help='whether use warp_op function to get disparity')
 parser.add_argument('--config-file', type=str, default='./CasStereoNet/configs/local_train_config.yaml',
                     metavar='FILE', help='Config files')
+parser.add_argument('--color-jitter', action='store_true', help='whether apply color jitter in data augmentation')
+parser.add_argument('--gaussian-blur', action='store_true', help='whether apply gaussian blur in data augmentation')
+parser.add_argument('--debug', action='store_true', help='whether run in debug mode')
+parser.add_argument('--warp-op', action='store_true', help='whether use warp_op function to get disparity')
 
 # parse arguments
 args = parser.parse_args()
@@ -190,8 +192,8 @@ else:
 StereoDataset = __datasets__[args.dataset]
 Test_StereoDataset = __datasets__[args.test_dataset]
 if args.dataset == 'messytable':
-    train_dataset = StereoDataset(cfg.SPLIT.TRAIN, args.debug, sub=100)
-    test_dataset = Test_StereoDataset(cfg.SPLIT.VAL, args.debug, sub=10)
+    train_dataset = StereoDataset(cfg.SPLIT.TRAIN, args.gaussian_blur, args.color_jitter, args.debug, sub=100)
+    test_dataset = Test_StereoDataset(cfg.SPLIT.VAL, args.gaussian_blur, args.color_jitter, args.debug, sub=10)
 else:
     train_dataset = StereoDataset(args.datapath, args.trainlist, True,
                                   crop_height=args.crop_height, crop_width=args.crop_width,

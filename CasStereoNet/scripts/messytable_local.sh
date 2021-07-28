@@ -13,6 +13,7 @@ DATASET="messytable"
 
 python -m torch.distributed.launch --nproc_per_node=$2 CasStereoNet/main.py \
   --dataset $DATASET --test_dataset $DATASET \
+  --gaussian-blur --color-jitter \
   --epochs 2 --lrepochs "10,20,30:2" \
   --log_freq 2000 \
   --using_ns --ns_size 3 \

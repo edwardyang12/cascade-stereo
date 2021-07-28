@@ -85,7 +85,7 @@ def get_test_loader(split_file, debug=False, sub=100, isTest=False, onReal=False
     :return: dataloader
     """
     messytable_dataset = MessytableTestDataset(split_file, debug, sub, isTest=isTest, onReal=onReal)
-    loader = DataLoader(messytable_dataset, batch_size=1, num_workers=0)
+    loader = DataLoader(messytable_dataset, batch_size=1, num_workers=1)
     return loader
 
 

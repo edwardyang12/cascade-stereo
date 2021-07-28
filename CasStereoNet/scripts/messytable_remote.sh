@@ -13,6 +13,7 @@ DATASET="messytable"
 
 python CasStereoNet/main.py \
   --debug \
+  -- warp_op \
   --dataset $DATASET --test_dataset $DATASET \
   --epochs 35 --lrepochs "10,20,30:2" \
   --log_freq 2000 \

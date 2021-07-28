@@ -20,7 +20,7 @@ def get_split_files(split_file, debug=False, sub=100, isTest=False, onReal=False
     """
     :param split_file: Path to the split .txt file, e.g. train.txt
     :param debug: Debug mode, load less data
-    :param sub: Number of data for debug mode
+    :param sub: If debug mode is enabled, sub will be the number of data loaded
     :param isTest: Whether on test, if test no random shuffle
     :param onReal: Whether test on real dataset, folder and file names are different
     :return: Lists of paths to the entries listed in split file
