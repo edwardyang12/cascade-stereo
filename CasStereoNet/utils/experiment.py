@@ -72,7 +72,7 @@ def save_scalars(logger, mode_tag, scalar_dict, global_step):
         for idx, value in enumerate(values):
             scalar_name = '{}/{}'.format(mode_tag, tag)
             # if len(values) > 1:
-            scalar_name = scalar_name + "_" + str(idx)
+            scalar_name = scalar_name + "_" + str(idx) if len(values) > 1 else scalar_name
             logger.add_scalar(scalar_name, value, global_step)
 
 
@@ -201,9 +201,13 @@ def reduce_scalar_outputs(scalar_outputs):
         for k in sorted(scalar_outputs.keys()):
             if isinstance(scalar_outputs[k], (list, tuple)):
                 for sub_var in scalar_outputs[k]:
+                    if not isinstance(sub_var, torch.Tensor):
+                        sub_var = torch.FloatTensor(sub_var)
                     names.append(k)
                     scalars.append(sub_var)
             else:
+                if not isinstance(scalar_outputs[k], torch.Tensor):
+                    scalar_outputs[k] = torch.FloatTensor(scalar_outputs[k])
                 names.append(k)
                 scalars.append(scalar_outputs[k])
 

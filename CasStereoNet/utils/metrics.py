@@ -68,6 +68,8 @@ def EPE_metric(D_est, D_gt, mask):
 
 
 # Error metric for messy-table-dataset
+# TODO: Ignore instances with small mask? (@compute_metric_for_each_image)
+@make_nograd_func
 def compute_err_metric(disp_gt, depth_gt, disp_pred, focal_length, baseline, mask):
     """
     Compute the error metrics for predicted disparity map
@@ -104,6 +106,7 @@ def compute_err_metric(disp_gt, depth_gt, disp_pred, focal_length, baseline, mas
 
 
 # Error metric for messy-table-dataset object error
+@make_nograd_func
 def compute_obj_err(disp_gt, depth_gt, disp_pred, focal_length, baseline, label, mask, obj_total_num=17):
     """
     Compute error for each object instance in the scene
