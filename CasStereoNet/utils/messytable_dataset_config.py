@@ -10,18 +10,14 @@ cfg = _C
 
 # Directories
 _C.DIR = CN()
-# _C.DIR.DATASET = '/code/cascade-stereo/dataset_local_v9/training'
 _C.DIR.DATASET = '/cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training'
-# _C.DIR.OUTPUT = '/code/cascade-stereo/outputs_sim_real'
-_C.DIR.OUTPUT = '/isabella-fast/Cascade-Stereo/outputs_sim_real_7_22'
+_C.DIR.OUTPUT = '/isabella-fast/Cascade-Stereo/outputs_sim_real'
 
 # Split files
 _C.SPLIT = CN()
-# _C.SPLIT.TRAIN = '/code/cascade-stereo/dataset_local_v9/training_lists/all_train.txt'
 _C.SPLIT.TRAIN = '/cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training_lists/all_train.txt'
-# _C.SPLIT.VAL = '/code/cascade-stereo/dataset_local_v9/training_lists/all.txt'
 _C.SPLIT.VAL = '/cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training_lists/all_val.txt'
-_C.SPLIT.OBJ_NUM = 18  # Note: table+ground - 17th
+_C.SPLIT.OBJ_NUM = 18  # Note: table + ground - 17th
 
 _C.SPLIT.LEFT = '0128_irL_denoised_half.png'
 _C.SPLIT.RIGHT = '0128_irR_denoised_half.png'
@@ -35,10 +31,19 @@ _C.REAL = CN()
 _C.REAL.DATASET = '/code/cascade-stereo/real_dataset_local_v9'
 _C.REAL.LEFT = '1024_irL_real_1080.png'
 _C.REAL.RIGHT = '1024_irR_real_1080.png'
+_C.REAL.PAD_WIDTH = 960
+_C.REAL.PAD_HEIGHT = 544
 
-# Args
+# Model Args
 _C.ARGS = CN()
 _C.ARGS.MAX_DISP = 192  # maximum disparity
+_C.ARGS.MODEL = 'gwcnet-c'
+_C.ARGS.NDISP = '48,24'
+_C.ARGS.DISP_INTER_R = '4,1'
+_C.ARGS.CR_BASE_CHS = '32,32,16'
+_C.ARGS.GRAD_METHOD = 'detach'
+_C.ARGS.USING_NS = True
+_C.ARGS.NS_SIZE = 3
 
 # Data Augmentation
 _C.DATA_AUG = CN()

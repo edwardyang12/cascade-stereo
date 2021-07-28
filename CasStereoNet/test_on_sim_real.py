@@ -19,15 +19,16 @@ from utils.messytable_util import get_time_string, setup_logger
 from utils.warp_ops import apply_disparity_cu
 
 parser = argparse.ArgumentParser(description='Testing for Cascade-Stereo on messy-table-dataset')
-parser.add_argument('--config-file', type=str, default='./CasStereoNet/remote_test_config.yaml',
+parser.add_argument('--config-file', type=str, default='./CasStereoNet/configs/remote_test_config.yaml',
                     metavar='FILE', help='Config files')
 parser.add_argument('--model', type=str, default='', metavar='FILE', help='Path to test model')
+parser.add_argument('--output', type=str, default='./testing_output', help='Path to output folder')
 parser.add_argument('--debug', action='store_true', default=False, help='Debug mode')
 parser.add_argument('--annotate', type=str, default='', help='Annotation to the experiment')
 parser.add_argument('--onreal', action='store_true', default=False, help='Test on real dataset')
 parser.add_argument('--analyze-objects', action='store_true', default=True, help='Analyze on different objects')
 parser.add_argument('--exclude-bg', action='store_true', default=False, help='Exclude background when testing')
-parser.add_argument('--warp_op', action='store_true', help='whether use warp_op function to get disparity')
+parser.add_argument('--warp_op', action='store_true', default=False, help='whether use warp_op function to get disparity')
 args = parser.parse_args()
 cfg.merge_from_file(args.config_file)
 
@@ -206,10 +207,8 @@ def test(model, val_loader, logger, log_dir):
         img_label = F.interpolate(img_label, (540, 960)).type(torch.int)
 
         # Pad the imput image and depth disp image to 960 * 544
-        target_height = 544
-        target_width = 960
-        right_pad = target_width - 960
-        top_pad = target_height - 540
+        right_pad = cfg.REAL.PAD_WIDTH - 960
+        top_pad = cfg.REAL.PAD_HEIGHT - 540
         img_L = F.pad(img_L, (0, right_pad, top_pad, 0, 0, 0, 0, 0), mode='constant', value=0)
         img_R = F.pad(img_R, (0, right_pad, top_pad, 0, 0, 0, 0, 0), mode='constant', value=0)
 
@@ -217,14 +216,11 @@ def test(model, val_loader, logger, log_dir):
             # Mask ground pixel to False
             img_ground_mask = (img_depth_l > 0) & (img_depth_l < 1.25)
             mask = (img_disp_l < cfg.ARGS.MAX_DISP) * (img_disp_l > 0) * img_ground_mask
-            # Get ground mask where backgrounds pixels are marked with True
-            # ground_mask = torch.logical_not(img_ground_mask).squeeze(0).squeeze(0).detach().cpu().numpy()
         else:
             img_ground_mask = torch.ones_like(img_depth_l).type(torch.bool)
             mask = (img_disp_l < cfg.ARGS.MAX_DISP) * (img_disp_l > 0)
-            # ground_mask = torch.zeros_like(img_ground_mask).type(torch.bool).squeeze(0).squeeze(0).detach().cpu().numpy()
         mask = mask.type(torch.bool)
-        mask.detach_()  # [bs, 1, H/2, W/2]
+        mask.detach_()  # [bs, 1, H, W]
 
         ground_mask = torch.logical_not(mask).squeeze(0).squeeze(0).detach().cpu().numpy()
 
@@ -293,25 +289,13 @@ def test(model, val_loader, logger, log_dir):
     logger.info(f'Successfully saved object error to obj_err.txt')
 
 
-# TODO
-MODEL = 'gwcnet-c'
-MAXDISP = 192
-NDISP = "48,24"
-DISP_INTER_R = "4,1"
-CR_BASE_CHS = "32,32,16"
-GRAD_METHOD = "detach"
-USING_NS = True
-NS_SIZE = 3
-
-
 def main():
     # Obtain the dataloader
     val_loader = get_test_loader(cfg.SPLIT.VAL, args.debug, sub=10, isTest=True, onReal=args.onreal)
 
     # Tensorboard and logger
-    if os.path.isdir(cfg.DIR.OUTPUT) is False:
-        os.mkdir(cfg.DIR.OUTPUT)
-    log_dir = os.path.join(cfg.DIR.OUTPUT, f'{get_time_string()}_{args.annotate}')
+    os.makedirs(args.output, exist_ok=True)
+    log_dir = os.path.join(args.output, f'{get_time_string()}_{args.annotate}')
     os.mkdir(log_dir)
     logger = setup_logger("CascadeStereo Testing", distributed_rank=0, save_dir=log_dir)
     logger.info(f'Annotation: {args.annotate}')
@@ -321,15 +305,14 @@ def main():
 
     # Get the model
     logger.info(f'Loaded the checkpoint: {args.model}')
-    # model = torch.load(args.model)
     model = PSMNet(
-        maxdisp=MAXDISP,
-        ndisps=[int(nd) for nd in NDISP.split(",") if nd],
-        disp_interval_pixel=[float(d_i) for d_i in DISP_INTER_R.split(",") if d_i],
-        cr_base_chs=[int(ch) for ch in CR_BASE_CHS.split(",") if ch],
-        grad_method=GRAD_METHOD,
-        using_ns=USING_NS,
-        ns_size=NS_SIZE
+        maxdisp=cfg.ARGS.MAXDISP,
+        ndisps=[int(nd) for nd in cfg.ARGS.NDISP.split(",") if nd],
+        disp_interval_pixel=[float(d_i) for d_i in cfg.ARGS.DISP_INTER_R.split(",") if d_i],
+        cr_base_chs=[int(ch) for ch in cfg.ARGS.CR_BASE_CHS.split(",") if ch],
+        grad_method=cfg.ARGS.GRAD_METHOD,
+        using_ns=cfg.ARGS.USING_NS,
+        ns_size=cfg.ARGS.NS_SIZE
     )
     state_dict = torch.load(args.model)
     model.load_state_dict(state_dict['model'])

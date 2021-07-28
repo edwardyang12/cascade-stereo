@@ -59,33 +59,6 @@ class MessytableTestDataset(Dataset):
         img_disp_r = np.zeros_like(img_depth_r)
         img_disp_r[mask] = focal_length * baseline / img_depth_r[mask]
 
-        if not self.isTest:
-            # random crop the image to a fixed size
-            h, w = img_L_rgb.shape[:2]
-            # th, tw = h//2, w//2
-            th, tw = 256, 512
-            x = random.randint(0, h - th)
-            y = random.randint(0, w - tw)
-            img_L_rgb = img_L_rgb[x:(x+th), y:(y+tw)]
-            img_R_rgb = img_R_rgb[x:(x+th), y:(y+tw)]
-            img_disp_l = img_disp_l[2*x: 2*(x+th), 2*y: 2*(y+tw)]
-            img_depth_l = img_depth_l[2*x: 2*(x+th), 2*y: 2*(y+tw)]
-            img_disp_r = img_disp_r[2*x: 2*(x+th), 2*y: 2*(y+tw)]
-            img_depth_r = img_depth_r[2*x: 2*(x+th), 2*y: 2*(y+tw)]
-            img_label = img_label[2*x: 2*(x+th), 2*y: 2*(y+tw)]
-        # else:
-        #     if self.onReal: # real input image is 1080 * 1920
-        #         img_L_rgb = img_L_rgb[28:-28]
-        #         img_R_rgb = img_R_rgb[28:-28]
-        #     else:
-        #         img_L_rgb = img_L_rgb[14:-14]
-        #         img_R_rgb = img_R_rgb[14:-14]
-        #     img_disp_l = img_disp_l[28:-28]
-        #     img_depth_l = img_depth_l[28:-28]
-        #     img_disp_r = img_disp_r[28:-28]
-        #     img_depth_r = img_depth_r[28:-28]
-        #     img_label = img_label[28:-28]
-
         item = {}
         item['img_L'] = self.normalize_transform(img_L_rgb)
         item['img_R'] = self.normalize_transform(img_R_rgb)

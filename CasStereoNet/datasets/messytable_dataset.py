@@ -47,7 +47,6 @@ class MessytableDataset(Dataset):
         img_depth_l = np.array(Image.open(self.img_depth_l[idx])) / 1000  # convert from mm to m
         img_depth_r = np.array(Image.open(self.img_depth_r[idx])) / 1000  # convert from mm to m
         img_meta = load_pickle(self.img_meta[idx])
-        # img_label = np.array(Image.open(self.img_label[idx]))
 
         # Convert depth map to disparity map
         extrinsic_l = img_meta['extrinsic_l']
@@ -63,29 +62,18 @@ class MessytableDataset(Dataset):
         img_disp_r = np.zeros_like(img_depth_r)
         img_disp_r[mask] = focal_length * baseline / img_depth_r[mask]
 
-        if not self.isTest:
-            # random crop the image to a fixed size  image origin 540*960
-            h, w = img_L_rgb.shape[:2]
-            # th, tw = h//2, w//2
-            th, tw = 256, 512
-            x = random.randint(0, h - th)
-            y = random.randint(0, w - tw)
-            img_L_rgb = img_L_rgb[x:(x+th), y:(y+tw)]
-            img_R_rgb = img_R_rgb[x:(x+th), y:(y+tw)]
-            img_disp_l = img_disp_l[2*x: 2*(x+th), 2*y: 2*(y+tw)]  # depth original res in 1080*1920
-            img_depth_l = img_depth_l[2*x: 2*(x+th), 2*y: 2*(y+tw)]
-            img_disp_r = img_disp_r[2*x: 2*(x+th), 2*y: 2*(y+tw)]
-            img_depth_r = img_depth_r[2*x: 2*(x+th), 2*y: 2*(y+tw)]
-            # img_label = img_label[2*x: 2*(x+th), 2*y: 2*(y+tw)]
-        else:
-            # if testing: (540, 960) -> (480, 720)/ (1080, 1920) -> (960, 1440) will be downsampled in batch
-            img_L_rgb = img_L_rgb[30:-30, 120:-120]
-            img_R_rgb = img_R_rgb[30:-30, 120:-120]
-            img_disp_l = img_disp_l[60:-60, 240:-240]
-            img_depth_l = img_depth_l[60:-60, 240:-240]
-            img_disp_r = img_disp_r[60:-60, 240:-240]
-            img_depth_r = img_depth_r[60:-60, 240:-240]
-            # img_label = img_label[60:-60, 240:-240]
+        # random crop the image to a fixed size  image origin 540*960
+        h, w = img_L_rgb.shape[:2]
+        # th, tw = h//2, w//2
+        th, tw = 256, 512
+        x = random.randint(0, h - th)
+        y = random.randint(0, w - tw)
+        img_L_rgb = img_L_rgb[x:(x+th), y:(y+tw)]
+        img_R_rgb = img_R_rgb[x:(x+th), y:(y+tw)]
+        img_disp_l = img_disp_l[2*x: 2*(x+th), 2*y: 2*(y+tw)]  # depth original res in 1080*1920
+        img_depth_l = img_depth_l[2*x: 2*(x+th), 2*y: 2*(y+tw)]
+        img_disp_r = img_disp_r[2*x: 2*(x+th), 2*y: 2*(y+tw)]
+        img_depth_r = img_depth_r[2*x: 2*(x+th), 2*y: 2*(y+tw)]
 
         # Get data augmentation
         custom_augmentation = __data_augmentation__()

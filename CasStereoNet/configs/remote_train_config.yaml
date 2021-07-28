@@ -1,0 +1,30 @@
+# Config files for remote training
+
+# Directories
+DIR:
+  DATASET: '/cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training'  #  directory of your training dataset
+  OUTPUT: '/isabella-fast/Cascade-Stereo/outputs_sim_real'  # output folder to store all your results
+
+# Split files
+SPLIT:
+  TRAIN: '/cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training_lists/all_train.txt'  # training lists of your training set
+  VAL: '/cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training_lists/all_val.txt'  # training lists of your validation set
+  LEFT: '0128_irL_denoised_half.png'
+  RIGHT: '0128_irR_denoised_half.png'
+  DEPTHL: 'depthL.png'
+  DEPTHR: 'depthR.png'
+  META: 'meta.pkl'
+  LABEL: 'irL_label_image.png'
+
+# Data Augmentation
+DATA_AUG:
+  # Color Jitter
+  BRIGHT_MIN: 0.4
+  BRIGHT_MAX: 1.4
+  CONTRAST_MIN: 0.8
+  CONTRAST_MAX: 1.2
+
+  # Gaussian blur
+  GAUSSIAN_MIN: 0.1
+  GAUSSIAN_MAX: 2
+  GAUSSIAN_KERNEL: 9
