@@ -100,7 +100,8 @@ if args.sync_bn:
     model = apex.parallel.convert_syncbn_model(model)
 model_loss = __loss__[args.model]
 model.cuda()
-print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
+if dist.get_rank() == 0:
+    print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
 # Optimizer
 optimizer = optim.Adam(model.parameters(), lr=cfg.SOLVER.LR, betas=(0.9, 0.999))
@@ -123,7 +124,8 @@ elif args.loadckpt:
     print("loading model {}".format(args.loadckpt))
     state_dict = torch.load(args.loadckpt, map_location=torch.device("cpu"))
     model.load_state_dict(state_dict['model'])
-print("start at epoch {}".format(start_epoch))
+if dist.get_rank() == 0:
+    print("start at epoch {}".format(start_epoch))
 
 # Initialize Amp
 if args.using_apex:
@@ -132,7 +134,6 @@ if args.using_apex:
                                       keep_batchnorm_fp32=args.keep_batchnorm_fp32,
                                       loss_scale=args.loss_scale
                                       )
-
 # Enable Multiprocess training
 if is_distributed:
     print("Dist Train, Let's use", torch.cuda.device_count(), "GPUs!")
@@ -150,7 +151,7 @@ else:
 
 # Dataset, dataloader
 train_dataset = MessytableDataset(cfg.SPLIT.TRAIN, args.gaussian_blur, args.color_jitter, args.debug, sub=100)
-val_dataset = MessytableDataset(cfg.SPLIT.VAL, args.gaussian_blur, args.color_jitter, args.debug, sub=10)
+val_dataset = MessytableDataset(cfg.SPLIT.VAL, args.gaussian_blur, args.color_jitter, args.debug, sub=100)
 
 if is_distributed:
     train_sampler = torch.utils.data.DistributedSampler(train_dataset, num_replicas=dist.get_world_size(),
@@ -186,20 +187,22 @@ def train():
             if (not is_distributed) or (dist.get_rank() == 0):
                 avg_train_scalars.update(scalar_outputs)
 
-        # Get average results among all batches
-        total_err_metrics = avg_train_scalars.mean()
-        print(f'Epoch {epoch_idx} train total_err_metrics: {total_err_metrics}')
+        # Calculate average error in the main process
+        if (not is_distributed) or (dist.get_rank() == 0):
+            # Get average results among all batches
+            total_err_metrics = avg_train_scalars.mean()
+            print(f'Epoch {epoch_idx} train total_err_metrics: {total_err_metrics}')
 
-        # Add lr to dict and save results to tensorboard
-        total_err_metrics.update({'lr': optimizer.param_groups[0]['lr']})
-        save_scalars(logger, 'train', total_err_metrics, epoch_idx)
+            # Add lr to dict and save results to tensorboard
+            total_err_metrics.update({'lr': optimizer.param_groups[0]['lr']})
+            save_scalars(logger, 'train', total_err_metrics, epoch_idx)
 
-        # Save checkpoints
-        if (epoch_idx + 1) % args.save_freq == 0:
-            if (not is_distributed) or (dist.get_rank() == 0):
-                checkpoint_data = {'epoch': epoch_idx, 'model': model.module.state_dict(), 'optimizer': optimizer.state_dict()}
-                save_filename = "{}/checkpoint_{:0>6}.ckpt".format(args.logdir, epoch_idx)
-                torch.save(checkpoint_data, save_filename)
+            # Save checkpoints
+            if (epoch_idx + 1) % args.save_freq == 0:
+                if (not is_distributed) or (dist.get_rank() == 0):
+                    checkpoint_data = {'epoch': epoch_idx, 'model': model.module.state_dict(), 'optimizer': optimizer.state_dict()}
+                    save_filename = "{}/checkpoint_{:0>6}.ckpt".format(args.logdir, epoch_idx)
+                    torch.save(checkpoint_data, save_filename)
         gc.collect()
 
         # Validation
@@ -209,21 +212,23 @@ def train():
             if (not is_distributed) or (dist.get_rank() == 0):
                 avg_test_scalars.update(scalar_outputs)
 
-        # Get average results among all batches
-        total_err_metrics = avg_test_scalars.mean()
-        print(f'Epoch {epoch_idx} val   total_err_metrics: {total_err_metrics}')
-        save_scalars(logger, 'val', total_err_metrics, epoch_idx)
-            
-        # Save best checkpoints
+        # Calculate average error and save checkpoint in the main process
         if (not is_distributed) or (dist.get_rank() == 0):
-            New_err = total_err_metrics["depth_abs_err"]
-            if New_err < Cur_err:
-                Cur_err = New_err
-                checkpoint_data = {'epoch': epoch_idx, 'model': model.module.state_dict(),
-                                   'optimizer': optimizer.state_dict()}
-                save_filename = "{}/checkpoint_best.ckpt".format(args.logdir)
-                torch.save(checkpoint_data, save_filename)
-                print("Best Checkpoint epoch_idx:{}".format(epoch_idx))
+            # Get average results among all batches
+            total_err_metrics = avg_test_scalars.mean()
+            print(f'Epoch {epoch_idx} val   total_err_metrics: {total_err_metrics}')
+            save_scalars(logger, 'val', total_err_metrics, epoch_idx)
+
+            # Save best checkpoints
+            if (not is_distributed) or (dist.get_rank() == 0):
+                New_err = total_err_metrics["depth_abs_err"][0]
+                if New_err < Cur_err:
+                    Cur_err = New_err
+                    checkpoint_data = {'epoch': epoch_idx, 'model': model.module.state_dict(),
+                                       'optimizer': optimizer.state_dict()}
+                    save_filename = "{}/checkpoint_best.ckpt".format(args.logdir)
+                    torch.save(checkpoint_data, save_filename)
+                    print("Best Checkpoint epoch_idx:{}".format(epoch_idx))
         gc.collect()
 
 

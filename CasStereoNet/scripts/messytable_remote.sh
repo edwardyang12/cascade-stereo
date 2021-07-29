@@ -15,8 +15,8 @@ fi
 python -m torch.distributed.launch --nproc_per_node=$1 CasStereoNet/main.py \
   --debug \
   --gaussian-blur \
-  --config-file /CasStereoNet/configs/remote_train_config.yaml \
-  --warp_op \
+  --config-file ./CasStereoNet/configs/remote_train_config.yaml \
+  --warp-op \
   --logdir $save_path | tee -a  $save_path/log.txt
 
 

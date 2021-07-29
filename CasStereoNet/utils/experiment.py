@@ -192,6 +192,7 @@ def get_world_size():
 
 from collections import defaultdict
 def reduce_scalar_outputs(scalar_outputs):
+    local_device = scalar_outputs['loss'].device  # TODO
     world_size = get_world_size()
     if world_size < 2:
         return scalar_outputs
@@ -202,12 +203,12 @@ def reduce_scalar_outputs(scalar_outputs):
             if isinstance(scalar_outputs[k], (list, tuple)):
                 for sub_var in scalar_outputs[k]:
                     if not isinstance(sub_var, torch.Tensor):
-                        sub_var = torch.FloatTensor(sub_var)
+                        sub_var = torch.as_tensor(sub_var, device=local_device)
                     names.append(k)
                     scalars.append(sub_var)
             else:
                 if not isinstance(scalar_outputs[k], torch.Tensor):
-                    scalar_outputs[k] = torch.FloatTensor(scalar_outputs[k])
+                    scalar_outputs[k] = torch.as_tensor(scalar_outputs[k], device=local_device)
                 names.append(k)
                 scalars.append(scalar_outputs[k])
 
