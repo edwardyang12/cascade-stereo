@@ -1,19 +1,12 @@
 from __future__ import print_function, division
 import argparse
-import os, sys, shutil
-import torch
-import torch.nn as nn
+import os, sys
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
-from torch.autograd import Variable
-import torchvision.utils as vutils
-import torch.nn.functional as F
-import numpy as np
-import time
 from tensorboardX import SummaryWriter
-from datasets import __datasets__
+from datasets.messytable_dataset import MessytableDataset
 from models import __models__, __loss__
 from utils import *
 from utils.metrics import compute_err_metric
@@ -25,58 +18,26 @@ cudnn.benchmark = True
 assert torch.backends.cudnn.enabled, "Amp requires cudnn backend to be enabled."
 
 parser = argparse.ArgumentParser(description='Cascade Stereo Network (CasStereoNet)')
+
+# Model parameters
 parser.add_argument('--model', default='gwcnet-c', help='select a model structure', choices=__models__.keys())
-parser.add_argument('--maxdisp', type=int, default=192, help='maximum disparity')
-
-parser.add_argument('--dataset', required=True, help='dataset name', choices=__datasets__.keys())
-parser.add_argument('--datapath', required=False, help='data path')
-parser.add_argument('--test_dataset', required=False, help='dataset name', choices=__datasets__.keys())
-parser.add_argument('--test_datapath', required=False, help='data path')
-parser.add_argument('--trainlist', required=False, help='training list')
-parser.add_argument('--testlist', required=False, help='testing list')
-
-parser.add_argument('--lr', type=float, default=0.001, help='base learning rate')
-parser.add_argument('--batch_size', type=int, default=1, help='training batch size')
-parser.add_argument('--test_batch_size', type=int, default=1, help='testing batch size')
-parser.add_argument('--epochs', type=int, required=True, help='number of epochs to train')
-parser.add_argument('--lrepochs', type=str, required=True, help='the epochs to decay lr: the downscale rate')
-
+parser.add_argument('--grad_method', type=str, default="detach", choices=["detach", "undetach"],
+                    help='predicted disp detach, undetach')
+parser.add_argument('--save_freq', type=int, default=1, help='the frequency of saving checkpoint')
 parser.add_argument('--logdir', required=True, help='the directory to save logs and checkpoints')
 parser.add_argument('--loadckpt', help='load the weights from a specific checkpoint')
 parser.add_argument('--resume', action='store_true', help='continue training the model')
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
 
-parser.add_argument('--summary_freq', type=int, default=50, help='the frequency of saving summary')
-parser.add_argument('--save_freq', type=int, default=1, help='the frequency of saving checkpoint')
-
-parser.add_argument('--log_freq', type=int, default=50, help='log freq')
-parser.add_argument('--eval_freq', type=int, default=1, help='eval freq')
-parser.add_argument("--local_rank", type=int, default=0)
-
-parser.add_argument('--mode', type=str, default="train", help='train or test mode')
-
-
-parser.add_argument('--ndisps', type=str, default="48,24", help='ndisps')
-parser.add_argument('--disp_inter_r', type=str, default="4,1", help='disp_intervals_ratio')
-parser.add_argument('--dlossw', type=str, default="0.5,2.0", help='depth loss weight for different stage')
-parser.add_argument('--cr_base_chs', type=str, default="32,32,16", help='cost regularization base channels')
-parser.add_argument('--grad_method', type=str, default="detach", choices=["detach", "undetach"], help='predicted disp detach, undetach')
-
-
-parser.add_argument('--using_ns', action='store_true', help='using neighbor search')
-parser.add_argument('--ns_size', type=int, default=3, help='nb_size')
-
-parser.add_argument('--crop_height', type=int, default=256, required=False, help="crop height")
-parser.add_argument('--crop_width', type=int, default=512, required=False, help="crop width")
-parser.add_argument('--test_crop_height', type=int, default=480, required=False, help="crop height")
-parser.add_argument('--test_crop_width', type=int, default=720, required=False, help="crop width")
-
+# Apex and distributed training configuration
+parser.add_argument("--local_rank", type=int, default=0, help='rank of device in distributed training')
 parser.add_argument('--using_apex', action='store_true', help='using apex, need to install apex')
 parser.add_argument('--sync_bn', action='store_true',help='enabling apex sync BN.')
 parser.add_argument('--opt-level', type=str, default="O0")
 parser.add_argument('--keep-batchnorm-fp32', type=str, default=None)
 parser.add_argument('--loss-scale', type=str, default=None)
 
+# Messytable dataset configuration
 parser.add_argument('--config-file', type=str, default='./CasStereoNet/configs/local_train_config.yaml',
                     metavar='FILE', help='Config files')
 parser.add_argument('--color-jitter', action='store_true', help='whether apply color jitter in data augmentation')
@@ -84,12 +45,11 @@ parser.add_argument('--gaussian-blur', action='store_true', help='whether apply 
 parser.add_argument('--debug', action='store_true', help='whether run in debug mode')
 parser.add_argument('--warp-op', action='store_true', help='whether use warp_op function to get disparity')
 
-# parse arguments
 args = parser.parse_args()
 cfg.merge_from_file(args.config_file)
 os.makedirs(args.logdir, exist_ok=True)
 
-#using sync_bn by using nvidia-apex, need to install apex.
+# Use sync_bn by using nvidia-apex, need to install apex.
 if args.sync_bn:
     assert args.using_apex, "must set using apex and install nvidia-apex"
 if args.using_apex:
@@ -101,7 +61,7 @@ if args.using_apex:
     except ImportError:
         raise ImportError("Please install apex from https://www.github.com/nvidia/apex to run this example.")
 
-#dis
+# Distributed training
 num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
 is_distributed = num_gpus > 1
 args.is_distributed = is_distributed
@@ -113,39 +73,39 @@ if is_distributed:
     )
     synchronize()
 
-#set seed
+# Set seed
 set_random_seed(args.seed)
 
+# Create summary logger and print args
 if (not is_distributed) or (dist.get_rank() == 0):
-    # create summary logger
     print("argv:", sys.argv[1:])
     print_args(args)
+    print(f'Runing with configs : \n {cfg}')
     print("creating new summary file")
     logger = SummaryWriter(args.logdir)
 
-# model
+# Create model and model_loss
 model = __models__[args.model](
-                            maxdisp=args.maxdisp,
-                            ndisps=[int(nd) for nd in args.ndisps.split(",") if nd],
-                            disp_interval_pixel=[float(d_i) for d_i in args.disp_inter_r.split(",") if d_i],
-                            cr_base_chs=[int(ch) for ch in args.cr_base_chs.split(",") if ch],
+                            maxdisp=cfg.ARGS.MAX_DISP,
+                            ndisps=[int(nd) for nd in cfg.ARGS.NDISP],
+                            disp_interval_pixel=[float(d_i) for d_i in cfg.ARGS.DISP_INTER_R],
+                            cr_base_chs=[int(ch) for ch in cfg.ARGS.CR_BASE_CHS],
                             grad_method=args.grad_method,
-                            using_ns=args.using_ns,
-                            ns_size=args.ns_size
+                            using_ns=cfg.ARGS.USING_NS,
+                            ns_size=cfg.ARGS.NS_SIZE
                            )
 if args.sync_bn:
     import apex
     print("using apex synced BN")
     model = apex.parallel.convert_syncbn_model(model)
-
 model_loss = __loss__[args.model]
 model.cuda()
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
-#optimizer
-optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999))
+# Optimizer
+optimizer = optim.Adam(model.parameters(), lr=cfg.SOLVER.LR, betas=(0.9, 0.999))
 
-# load parameters
+# Load parameters if ckpt is provided
 start_epoch = 0
 if args.resume:
     # find all checkpoints file and sort according to epoch id
@@ -165,15 +125,15 @@ elif args.loadckpt:
     model.load_state_dict(state_dict['model'])
 print("start at epoch {}".format(start_epoch))
 
+# Initialize Amp
 if args.using_apex:
-    # Initialize Amp
     model, optimizer = amp.initialize(model, optimizer,
                                       opt_level=args.opt_level,
                                       keep_batchnorm_fp32=args.keep_batchnorm_fp32,
                                       loss_scale=args.loss_scale
                                       )
 
-#conver model to dist
+# Enable Multiprocess training
 if is_distributed:
     print("Dist Train, Let's use", torch.cuda.device_count(), "GPUs!")
     model = torch.nn.parallel.DistributedDataParallel(
@@ -188,45 +148,36 @@ else:
         model = nn.DataParallel(model)
 
 
-# dataset, dataloader
-StereoDataset = __datasets__[args.dataset]
-Test_StereoDataset = __datasets__[args.test_dataset]
-if args.dataset == 'messytable':
-    train_dataset = StereoDataset(cfg.SPLIT.TRAIN, args.gaussian_blur, args.color_jitter, args.debug, sub=100)
-    test_dataset = Test_StereoDataset(cfg.SPLIT.VAL, args.gaussian_blur, args.color_jitter, args.debug, sub=10)
-else:
-    train_dataset = StereoDataset(args.datapath, args.trainlist, True,
-                                  crop_height=args.crop_height, crop_width=args.crop_width,
-                                  test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width)
-    test_dataset = Test_StereoDataset(args.test_datapath, args.testlist, False,
-                                 crop_height=args.crop_height, crop_width=args.crop_width,
-                                 test_crop_height=args.test_crop_height, test_crop_width=args.test_crop_width)
+# Dataset, dataloader
+train_dataset = MessytableDataset(cfg.SPLIT.TRAIN, args.gaussian_blur, args.color_jitter, args.debug, sub=100)
+val_dataset = MessytableDataset(cfg.SPLIT.VAL, args.gaussian_blur, args.color_jitter, args.debug, sub=10)
+
 if is_distributed:
     train_sampler = torch.utils.data.DistributedSampler(train_dataset, num_replicas=dist.get_world_size(),
                                                         rank=dist.get_rank())
-    test_sampler = torch.utils.data.DistributedSampler(test_dataset, num_replicas=dist.get_world_size(),
+    val_sampler = torch.utils.data.DistributedSampler(val_dataset, num_replicas=dist.get_world_size(),
                                                        rank=dist.get_rank())
 
-    TrainImgLoader = torch.utils.data.DataLoader(train_dataset, args.batch_size, sampler=train_sampler, num_workers=1,
-                                                 drop_last=True, pin_memory=True)
-    TestImgLoader = torch.utils.data.DataLoader(test_dataset, args.test_batch_size, sampler=test_sampler, num_workers=1,
-                                                drop_last=False, pin_memory=True)
+    TrainImgLoader = torch.utils.data.DataLoader(train_dataset, cfg.SOLVER.BATCH_SIZE, sampler=train_sampler,
+                                                 num_workers=cfg.SOLVER.NUM_WORKER, drop_last=True, pin_memory=True)
+    ValImgLoader = torch.utils.data.DataLoader(val_dataset, cfg.SOLVER.BATCH_SIZE, sampler=val_sampler,
+                                                num_workers=cfg.SOLVER.NUM_WORKER, drop_last=False, pin_memory=True)
 
 else:
-    TrainImgLoader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
-                                                 shuffle=True, num_workers=8, drop_last=True)
+    TrainImgLoader = torch.utils.data.DataLoader(train_dataset, batch_size=cfg.SOLVER.BATCH_SIZE,
+                                                 shuffle=True, num_workers=cfg.SOLVER.NUM_WORKER, drop_last=True)
 
-    TestImgLoader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size,
-                                                shuffle=False, num_workers=8, drop_last=False)
+    ValImgLoader = torch.utils.data.DataLoader(val_dataset, batch_size=cfg.SOLVER.BATCH_SIZE,
+                                                shuffle=False, num_workers=cfg.SOLVER.NUM_WORKER, drop_last=False)
 
 
-num_stage = len([int(nd) for nd in args.ndisps.split(",") if nd])
+num_stage = len([int(nd) for nd in cfg.ARGS.NDISP])
 
 
 def train():
     Cur_err = np.inf
-    for epoch_idx in range(start_epoch, args.epochs):
-        adjust_learning_rate(optimizer, epoch_idx, args.lr, args.lrepochs)
+    for epoch_idx in range(start_epoch, cfg.SOLVER.EPOCHS):
+        adjust_learning_rate(optimizer, epoch_idx, cfg.SOLVER.LR, cfg.SOLVER.LR_EPOCHS)
 
         # Training
         avg_train_scalars = AverageMeterDict()
@@ -253,7 +204,7 @@ def train():
 
         # Validation
         avg_test_scalars = AverageMeterDict()
-        for batch_idx, sample in enumerate(TestImgLoader):
+        for batch_idx, sample in enumerate(ValImgLoader):
             loss, scalar_outputs = test_sample(sample)
             if (not is_distributed) or (dist.get_rank() == 0):
                 avg_test_scalars.update(scalar_outputs)
@@ -280,30 +231,29 @@ def train():
 def train_sample(sample):
     model.train()
 
-    if args.dataset == 'messytable':
-        imgL, imgR, disp_gt = sample['img_L'], sample['img_R'], sample['img_disp_l']
-        depth_gt = sample['img_depth_l'].cuda()  # [bs, 1, H, W]
-        img_focal_length = sample['focal_length'].cuda()
-        img_baseline = sample['baseline'].cuda()
-    else:
-        imgL, imgR, disp_gt = sample['left'], sample['right'], sample['disparity']
-    imgL = imgL.cuda()
-    imgR = imgR.cuda()
-    disp_gt = disp_gt.cuda()
+    # Load data
+    imgL = sample['img_L'].cuda()
+    imgR = sample['img_R'].cuda()
+    disp_gt = sample['img_disp_l'].cuda()
+    depth_gt = sample['img_depth_l'].cuda()  # [bs, 1, H, W]
+    img_focal_length = sample['focal_length'].cuda()
+    img_baseline = sample['baseline'].cuda()
 
     if args.warp_op:
         img_disp_r = sample['img_disp_r'].cuda()
         disp_gt = apply_disparity_cu(img_disp_r, img_disp_r.type(torch.int))  # [bs, 1, H, W]
         del img_disp_r
-    if args.dataset == 'messytable':
-        disp_gt = F.interpolate(disp_gt, (256, 512)).squeeze(1) # [bs, H, W]
-        depth_gt = F.interpolate(depth_gt, (256, 512))  # [bs, 1, H, W]
+    
+    # Resize the 2x resolution disp and depth back to 256 * 512
+    # Note: This step should go after the apply_disparity_cu
+    disp_gt = F.interpolate(disp_gt, (256, 512)).squeeze(1)  # [bs, H, W]
+    depth_gt = F.interpolate(depth_gt, (256, 512))  # [bs, 1, H, W]
 
     optimizer.zero_grad()
 
     outputs = model(imgL, imgR)
-    mask = (disp_gt < args.maxdisp) * (disp_gt > 0)  # Note in training we do not exclude bg
-    loss = model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in args.dlossw.split(",") if e])
+    mask = (disp_gt < cfg.ARGS.MAX_DISP) * (disp_gt > 0)  # Note in training we do not exclude bg
+    loss = model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in cfg.ARGS.DLOSSW])
 
     outputs_stage = outputs["stage{}".format(num_stage)]
     disp_pred = outputs_stage['pred']  # [bs, H, W]
@@ -341,29 +291,25 @@ def test_sample(sample):
         model_eval = model
     model_eval.eval()
 
-    if args.dataset == 'messytable':
-        imgL, imgR, disp_gt = sample['img_L'], sample['img_R'], sample['img_disp_l']
-        depth_gt = sample['img_depth_l'].cuda()  # [bs, 1, H, W]
-        img_focal_length = sample['focal_length'].cuda()
-        img_baseline = sample['baseline'].cuda()
-    else:
-        imgL, imgR, disp_gt = sample['left'], sample['right'], sample['disparity']
-    imgL = imgL.cuda()
-    imgR = imgR.cuda()
-    disp_gt = disp_gt.cuda()
+    imgL = sample['img_L'].cuda()
+    imgR = sample['img_R'].cuda()
+    disp_gt = sample['img_disp_l'].cuda()
+    depth_gt = sample['img_depth_l'].cuda()  # [bs, 1, H, W]
+    img_focal_length = sample['focal_length'].cuda()
+    img_baseline = sample['baseline'].cuda()
 
     if args.warp_op:
         img_disp_r = sample['img_disp_r'].cuda()
         disp_gt = apply_disparity_cu(img_disp_r, img_disp_r.type(torch.int))  # [bs, 1, H, W]
         del img_disp_r
-    if args.dataset == 'messytable':
-        disp_gt = F.interpolate(disp_gt, (256, 512)).squeeze(1) # [bs, H, W]
-        depth_gt = F.interpolate(depth_gt, (256, 512))
+    
+    disp_gt = F.interpolate(disp_gt, (256, 512)).squeeze(1) # [bs, H, W]
+    depth_gt = F.interpolate(depth_gt, (256, 512))
 
     outputs = model_eval(imgL, imgR)
-    mask = (disp_gt < args.maxdisp) * (disp_gt > 0)
+    mask = (disp_gt < cfg.ARGS.MAX_DISP) * (disp_gt > 0)
     loss = torch.tensor(0, dtype=imgL.dtype, device=imgL.device, requires_grad=False)
-    # loss = model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in args.dlossw.split(",") if e])
+    # loss = model_loss(outputs, disp_gt, mask, dlossw=[float(e) for e in cfg.ARGS.DLOSSW])
 
     outputs_stage = outputs["stage{}".format(num_stage)]
     disp_pred = outputs_stage["pred"]
@@ -384,35 +330,6 @@ def test_sample(sample):
     return tensor2float(scalar_outputs["loss"]), tensor2float(scalar_outputs)
 
 
-def test_all():
-    # testing
-    avg_test_scalars = AverageMeterDict()
-    for batch_idx, sample in enumerate(TestImgLoader):
-        start_time = time.time()
-        do_summary = batch_idx % args.summary_freq == 0
-        loss, scalar_outputs, image_outputs = test_sample(sample, compute_metrics=False)
-        if (not is_distributed) or (dist.get_rank() == 0):
-            avg_test_scalars.update(scalar_outputs)
-            if do_summary:
-                save_scalars(logger, 'test', scalar_outputs, batch_idx)
-                save_images(logger, 'test', image_outputs, batch_idx)
-            del scalar_outputs, image_outputs
-            if batch_idx % args.log_freq == 0:
-                if isinstance(loss, (list, tuple)):
-                    loss = loss[0]
-                print('Iter {}/{}, test loss = {:.3f}, time = {:3f}'.format(
-                                                                             batch_idx,
-                                                                             len(TestImgLoader), loss,
-                                                                             time.time() - start_time))
-    if (not is_distributed) or (dist.get_rank() == 0):
-        avg_test_scalars = avg_test_scalars.mean()
-        save_scalars(logger, 'fulltest', avg_test_scalars, len(TestImgLoader))
-        print("avg_test_scalars", avg_test_scalars)
-
-
 if __name__ == '__main__':
-    if args.mode == 'train':
-        train()
-    elif args.mode == 'test':
-        test_all()
+    train()
 

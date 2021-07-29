@@ -19,7 +19,7 @@ from utils.messytable_util import get_time_string, setup_logger, \
 from utils.warp_ops import apply_disparity_cu
 
 parser = argparse.ArgumentParser(description='Testing for Cascade-Stereo on messy-table-dataset')
-parser.add_argument('--config-file', type=str, default='./CasStereoNet/configs/remote_test_config.yaml',
+parser.add_argument('--config-file', type=str, default='./CasStereoNet/configs/local_test_config.yaml',
                     metavar='FILE', help='Config files')
 parser.add_argument('--model', type=str, default='', metavar='FILE', help='Path to test model')
 parser.add_argument('--output', type=str, default='./testing_output', help='Path to output folder')

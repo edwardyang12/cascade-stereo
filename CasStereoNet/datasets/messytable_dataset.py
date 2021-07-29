@@ -15,8 +15,8 @@ from utils.messytable_util import get_split_files, load_pickle
 
 def __data_augmentation__(gaussian_blur=False, color_jitter=False):
     """
-    :param split_file: Path to the split .txt file, e.g. train.txt
     :param gaussian_blur: Whether apply gaussian blur in data augmentation
+    :param color_jitter: Whether apply color jitter in data augmentation
     Note:
         If you want to change the parameters of each augmentation, you need to go to config files,
         e.g. configs/remote_train_config.yaml
@@ -87,8 +87,7 @@ class MessytableDataset(Dataset):
 
         # random crop the image to 256 * 512
         h, w = img_L_rgb.shape[:2]
-        # th, tw = h//2, w//2
-        th, tw = 256, 512
+        th, tw = cfg.ARGS.CROP_HEIGHT, cfg.ARGS.CROP_WIDTH
         x = random.randint(0, h - th)
         y = random.randint(0, w - tw)
         img_L_rgb = img_L_rgb[x:(x+th), y:(y+tw)]

@@ -3,10 +3,7 @@ Author: Isabella Liu 7/19/21
 Feature: Load data from messy-table-dataset
 """
 
-import os
-import random
 import numpy as np
-import random
 from PIL import Image
 import torch
 import torchvision.transforms as Transforms

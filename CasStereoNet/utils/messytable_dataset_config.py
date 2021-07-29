@@ -34,16 +34,27 @@ _C.REAL.RIGHT = '1024_irR_real_1080.png'
 _C.REAL.PAD_WIDTH = 960
 _C.REAL.PAD_HEIGHT = 544
 
-# Model Args
+# Solver args
+_C.SOLVER = CN()
+_C.SOLVER.LR = 0.001                # base learning rate
+_C.SOLVER.LR_EPOCHS = '5,10,15:2'   # the epochs to decay lr: the downscale rate
+_C.SOLVER.EPOCHS = 20               # number of epochs to train
+_C.SOLVER.BATCH_SIZE = 1            # batch size
+_C.SOLVER.NUM_WORKER = 1            # num_worker in dataloader
+
+# Model args
 _C.ARGS = CN()
-_C.ARGS.MAX_DISP = 192  # maximum disparity
+_C.ARGS.MAX_DISP = 192              # maximum disparity
 _C.ARGS.MODEL = 'gwcnet-c'
-_C.ARGS.NDISP = '48,24'
-_C.ARGS.DISP_INTER_R = '4,1'
-_C.ARGS.CR_BASE_CHS = '32,32,16'
-_C.ARGS.GRAD_METHOD = 'detach'
-_C.ARGS.USING_NS = True
-_C.ARGS.NS_SIZE = 3
+_C.ARGS.GARD_METHOD = 'detach'
+_C.ARGS.NDISP = (48, 24)            # ndisps
+_C.ARGS.DISP_INTER_R = (4, 1)       # disp_intervals_ratio
+_C.ARGS.DLOSSW = (0.5, 2.0)         # depth loss weight for different stage
+_C.ARGS.CR_BASE_CHS = (32, 32, 16)  # cost regularization base channels
+_C.ARGS.USING_NS = True             # using neighbor search
+_C.ARGS.NS_SIZE = 3                 # nb_size
+_C.ARGS.CROP_HEIGHT = 256           # crop height
+_C.ARGS.CROP_WIDTH = 512            # crop width
 
 # Data Augmentation
 _C.DATA_AUG = CN()
