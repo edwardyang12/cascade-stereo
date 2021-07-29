@@ -8,3 +8,18 @@ events.out.*
 *.pyc
 *.cpkt
 tmp*/
+
+
+# Jupyter notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# Local datasets
+dataset_local_v9/
+real_dataset_local_v9
+
+# Outputs
+outputs/
+outputs_sim_real/
+local_train/
+*.ckpt
