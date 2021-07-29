@@ -174,9 +174,9 @@ def main():
     logger.info(f'Loaded the checkpoint: {args.model}')
     model = PSMNet(
         maxdisp=cfg.ARGS.MAX_DISP,
-        ndisps=[int(nd) for nd in cfg.ARGS.NDISP.split(",") if nd],
-        disp_interval_pixel=[float(d_i) for d_i in cfg.ARGS.DISP_INTER_R.split(",") if d_i],
-        cr_base_chs=[int(ch) for ch in cfg.ARGS.CR_BASE_CHS.split(",") if ch],
+        ndisps=[int(nd) for nd in cfg.ARGS.NDISP],
+        disp_interval_pixel=[float(d_i) for d_i in cfg.ARGS.DISP_INTER_R],
+        cr_base_chs=[int(ch) for ch in cfg.ARGS.CR_BASE_CHS],
         grad_method=cfg.ARGS.GRAD_METHOD,
         using_ns=cfg.ARGS.USING_NS,
         ns_size=cfg.ARGS.NS_SIZE
