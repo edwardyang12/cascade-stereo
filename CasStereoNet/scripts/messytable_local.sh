@@ -13,6 +13,5 @@ if [ ! -d $save_path ];then
 fi
 
 python -m torch.distributed.launch --nproc_per_node=$1 CasStereoNet/main.py \
-  --warp-op \
   --gaussian-blur --color-jitter \
   --logdir $save_path | tee -a  $save_path/log.txt

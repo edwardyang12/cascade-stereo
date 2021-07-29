@@ -15,9 +15,4 @@ fi
 python -m torch.distributed.launch --nproc_per_node=$1 CasStereoNet/main.py \
   --config-file ./CasStereoNet/configs/remote_train_config.yaml \
   --gaussian-blur \
-  --warp-op \
   --logdir $save_path | tee -a  $save_path/log.txt
-
-
-# Test
-  # python CasStereoNet/test_on_sim_real.py --config-file /isabella-fast/Cascade-Stereo/CasStereoNet/utils/messytable_dataset_config.py --model /isabella-fast/Cascade-Stereo/outputs/7_19_dataaug-0/checkpoint_000006.ckpt --debug --annotate local_test_real --exclude-bg --onreal

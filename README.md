@@ -29,6 +29,9 @@ it contains some parameters that we don't need to change often. If your dataset 
 please go to the this file to change the path to your dataset. The parameters of data augmentation are also included in
 this file.
 
+Please use different `$OUTPUT_PATH` for each job or you can use sub directories such as `train_7_28/dataaug-0/` to get
+more organized.
+
 ## Test
 ```shell
 python ./CasStereoNet/test_on_sim_real.py --config-file ./CasStereoNet/configs/remote_train_config.yaml --model $PATH_TO_YOUR_MODEL --annotate $EXPERIMENT_ANNOTATION --exclude-bg
@@ -37,6 +40,11 @@ Use `--exlude-bg` if you want to exclude background when calculating the error m
 
 Use `--onreal` if you are testing on real dataset, omit if you want to test on sim dataset.
 
+Example: 
+
+```shell
+python CasStereoNet/test_on_sim_real.py --config-file ./CasStereoNet/configs/remote_train_config.yaml --model /isabella-fast/Cascade-Stereo/outputs/7_19_dataaug-0/checkpoint_000006.ckpt --annotate test_7_28 --exclude-bg --onreal
+```
 
 ## Reference
 ```
