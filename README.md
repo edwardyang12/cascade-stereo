@@ -1,32 +1,44 @@
-# Casacde-Stereo(CVPR2020 Oral)
-Official source code of paper Cascade Cost Volume for High-Resolution Multi-View Stereo and Stereo Matching, [arxiv](https://arxiv.org/pdf/1912.06378.pdf)
+# Casacde-Stereo on Messytable Dataset
 
-# Installation
-## Requirements
-* python 3.6
-* Pytorch == 1.2 （The default interpolation of the high version is different from the low version, which will cause the results to be different）
-* CUDA >= 9.0
-
-```
-pip install -r requirements.txt  --user
+## Installation
+### Docker Image
+```markdown
+isabella98/cascade-stereo-image:latest
 ```
 
-## Option: Apex 
-install apex to enable synchronized batch normalization 
-```
+### Optional: Apex (not tested)
+Install apex to enable synchronized batch normalization:
+```shell
 git clone https://github.com/NVIDIA/apex.git
 cd apex
 pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
 ```
 
-# CasMVSNet(Multi View Stereo)
-Refer to [MVS-README.md](CasMVSNet/README.md)
-# CasStereoNet(Stereo Matching)
-Refer to [Stereo-Matching-README.md](CasStereoNet/README.md)
+## Train
+```shell
+./CasStereoNet/scripts/messytable_remote.sh $NUM_OF_GPUS $OUTPUT_PATH
+```
+Example: Use `./CasStereoNet/scripts/messytable_remote.sh 2 ./train_7_28/debug` to train your model with 2 GPUs.
 
-# Citation
-If you find this code useful in your research, please cite:
+I have simplified the `argparser` part in `main.py`, it now only contains some basic args. You can use `--gaussian-blur`
+and `--color-jitter` in your shell file ( e.g. `./CasStereoNet/scripts/messytable_remote.sh`) to enable gaussian blur 
+and color jitter during training. 
 
+If you want to change some other args such as model parameters, (e.g. lr, batch_size), please go to `CasStereoNet/configs/remote_train_config.yaml`,
+it contains some parameters that we don't need to change often. If your dataset folder is not mounted as `/cephfs`, 
+please go to the this file to change the path to your dataset. The parameters of data augmentation are also included in
+this file.
+
+## Test
+```shell
+python ./CasStereoNet/test_on_sim_real.py --config-file ./CasStereoNet/configs/remote_train_config.yaml --model $PATH_TO_YOUR_MODEL --annotate $EXPERIMENT_ANNOTATION --exclude-bg
+```
+Use `--exlude-bg` if you want to exclude background when calculating the error metric.
+
+Use `--onreal` if you are testing on real dataset, omit if you want to test on sim dataset.
+
+
+## Reference
 ```
 @inproceedings{gu2019cas,
   title={Cascade Cost Volume for High-Resolution Multi-View Stereo and Stereo Matching},
@@ -35,8 +47,3 @@ If you find this code useful in your research, please cite:
   year={2019}
 }
 ```
-
-# Acknowledgements
-Thanks to Xiaoyang Guo for opening source of his excellent works [GwcNet](https://github.com/xy-guo/GwcNet)
-and [MVSNet-pytorch](https://github.com/xy-guo/MVSNet_pytorch). Thanks to Yao Yao for opening source of 
-his excellent work [MVSNet](https://github.com/YoYo000/MVSNet).

@@ -28,7 +28,7 @@ parser.add_argument('--annotate', type=str, default='', help='Annotation to the 
 parser.add_argument('--onreal', action='store_true', default=False, help='Test on real dataset')
 parser.add_argument('--analyze-objects', action='store_true', default=True, help='Analyze on different objects')
 parser.add_argument('--exclude-bg', action='store_true', default=False, help='Exclude background when testing')
-parser.add_argument('--warp-op', action='store_true', default=False, help='whether use warp_op function to get disparity')
+parser.add_argument('--warp-op', action='store_true', default=True, help='whether use warp_op function to get disparity')
 args = parser.parse_args()
 cfg.merge_from_file(args.config_file)
 
