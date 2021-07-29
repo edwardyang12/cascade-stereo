@@ -27,7 +27,7 @@ SOLVER:
 ARGS:
   MAX_DISP: 192             # maximum disparity
   MODEL: 'gwcnet-c'
-  GARD_METHOD: 'detach'
+  GRAD_METHOD: 'detach'
   NDISP: (48, 24)           # ndisps
   DISP_INTER_R: (4, 1)      # disp_intervals_ratio
   DLOSSW: (0.5, 2.0)        # depth loss weight for different stage

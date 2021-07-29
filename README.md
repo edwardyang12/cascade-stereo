@@ -34,16 +34,18 @@ more organized.
 
 ## Test
 ```shell
-python ./CasStereoNet/test_on_sim_real.py --config-file ./CasStereoNet/configs/remote_train_config.yaml --model $PATH_TO_YOUR_MODEL --annotate $EXPERIMENT_ANNOTATION --exclude-bg
+python ./CasStereoNet/test_on_sim_real.py --config-file ./CasStereoNet/configs/remote_test_config.yaml --model $PATH_TO_YOUR_MODEL --annotate $EXPERIMENT_ANNOTATION --exclude-bg
 ```
 Use `--exlude-bg` if you want to exclude background when calculating the error metric.
 
 Use `--onreal` if you are testing on real dataset, omit if you want to test on sim dataset.
 
+Use `--debug` if you want to load less data (10) and see quick result.
+
 Example: 
 
 ```shell
-python CasStereoNet/test_on_sim_real.py --config-file ./CasStereoNet/configs/remote_train_config.yaml --model /isabella-fast/Cascade-Stereo/outputs/7_19_dataaug-0/checkpoint_000006.ckpt --annotate test_7_28 --exclude-bg --onreal
+python CasStereoNet/test_on_sim_real.py --config-file ./CasStereoNet/configs/remote_test_config.yaml --model /isabella-fast/Cascade-Stereo/outputs/7_19_dataaug-0/checkpoint_000006.ckpt --annotate test_7_28 --exclude-bg --onreal
 ```
 
 ## Reference
