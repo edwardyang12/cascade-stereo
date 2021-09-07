@@ -65,8 +65,8 @@ class MessytableDataset(Dataset):
         return len(self.img_L)
 
     def __getitem__(self, idx):
-        img_L_rgb = np.array(Image.open(self.img_L[idx]).convert(mode='RGB').resize((540,960), resample=Image.NEAREST))
-        img_R_rgb = np.array(Image.open(self.img_R[idx]).convert(mode='RGB').resize((540,960), resample=Image.NEAREST))
+        img_L_rgb = np.array(Image.open(self.img_L[idx]).convert(mode='RGB').resize((960,540), resample=Image.NEAREST))
+        img_R_rgb = np.array(Image.open(self.img_R[idx]).convert(mode='RGB').resize((960,540), resample=Image.NEAREST))
         img_depth_l = np.array(Image.open(self.img_depth_l[idx])) / 1000  # convert from mm to m
         img_depth_r = np.array(Image.open(self.img_depth_r[idx])) / 1000  # convert from mm to m
         img_meta = load_pickle(self.img_meta[idx])
@@ -86,7 +86,6 @@ class MessytableDataset(Dataset):
         img_disp_r[mask] = focal_length * baseline / img_depth_r[mask]
 
         # random crop the image to 256 * 512
-        print(img_L_rgb.shape, img_disp_l.shape)
         h, w = img_L_rgb.shape[:2]
         th, tw = cfg.ARGS.CROP_HEIGHT, cfg.ARGS.CROP_WIDTH
         x = random.randint(0, h - th)
@@ -94,7 +93,6 @@ class MessytableDataset(Dataset):
         img_L_rgb = img_L_rgb[x:(x+th), y:(y+tw)]
         img_R_rgb = img_R_rgb[x:(x+th), y:(y+tw)]
         img_disp_l = img_disp_l[2*x: 2*(x+th), 2*y: 2*(y+tw)]  # depth original res in 1080*1920
-        print(img_L_rgb.shape, img_disp_l.shape)
         img_depth_l = img_depth_l[2*x: 2*(x+th), 2*y: 2*(y+tw)]
         img_disp_r = img_disp_r[2*x: 2*(x+th), 2*y: 2*(y+tw)]
         img_depth_r = img_depth_r[2*x: 2*(x+th), 2*y: 2*(y+tw)]
