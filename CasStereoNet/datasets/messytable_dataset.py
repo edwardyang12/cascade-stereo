@@ -102,6 +102,7 @@ class MessytableDataset(Dataset):
 
         item = {}
         item['img_L'] = custom_augmentation(img_L_rgb)
+        print(img_L_rgb.shape)
         item['img_R'] = custom_augmentation(img_R_rgb)
         item['img_disp_l'] = torch.tensor(img_disp_l, dtype=torch.float32).unsqueeze(0)  # [bs, 1, H, W]
         item['img_depth_l'] = torch.tensor(img_depth_l, dtype=torch.float32).unsqueeze(0)  # [bs, 1, H, W]
