@@ -4,7 +4,7 @@
 DIR:
   DATASET: './linked_real_v9'  #  directory of your training dataset
   SIMSET: './linked_sim_v9'
-  
+
 # Split files
 SPLIT:
   TRAIN: '/cephfs/edward/newTrain.txt'  # training lists of your training set

@@ -10,13 +10,14 @@ cfg = _C
 
 # Directories
 _C.DIR = CN()
-_C.DIR.DATASET = '/cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training'
-_C.DIR.OUTPUT = '/isabella-fast/Cascade-Stereo/outputs_sim_real'
+_C.DIR.DATASET = './linked_real_v9'
+_C.DIR.OUTPUT = '/cephfs/edward/checkpoints/cascade_real'
+_C.DIR.SIMSET = './linked_sim_v9'
 
 # Split files
 _C.SPLIT = CN()
-_C.SPLIT.TRAIN = '/cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training_lists/all_train.txt'
-_C.SPLIT.VAL = '/cephfs/datasets/iccv_pnp/messy-table-dataset/v9/training_lists/all_val.txt'
+_C.SPLIT.TRAIN = '/cephfs/edward/newTrain.txt'
+_C.SPLIT.VAL = '/cephfs/edward/newVal.txt'
 _C.SPLIT.OBJ_NUM = 18  # Note: table + ground - 17th
 
 _C.SPLIT.LEFT = '0128_irL_denoised_half.png'
@@ -37,10 +38,10 @@ _C.REAL.PAD_HEIGHT = 544
 # Solver args
 _C.SOLVER = CN()
 _C.SOLVER.LR = 0.001                # base learning rate
-_C.SOLVER.LR_EPOCHS = '5,10,15:2'   # the epochs to decay lr: the downscale rate
-_C.SOLVER.EPOCHS = 20               # number of epochs to train
-_C.SOLVER.BATCH_SIZE = 1            # batch size
-_C.SOLVER.NUM_WORKER = 1            # num_worker in dataloader
+_C.SOLVER.LR_EPOCHS = '25,30,35:2'    # the epochs to decay lr: the downscale rate
+_C.SOLVER.EPOCHS = 40               # number of epochs to train
+_C.SOLVER.BATCH_SIZE = 3            # batch size
+_C.SOLVER.NUM_WORKER = 2            # num_worker in dataloader
 
 # Model args
 _C.ARGS = CN()
