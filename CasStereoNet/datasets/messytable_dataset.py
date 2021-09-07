@@ -86,6 +86,7 @@ class MessytableDataset(Dataset):
         img_disp_r[mask] = focal_length * baseline / img_depth_r[mask]
 
         # random crop the image to 256 * 512
+        print(img_L_rgb.shape, img_disp_l.shape)
         h, w = img_L_rgb.shape[:2]
         th, tw = cfg.ARGS.CROP_HEIGHT, cfg.ARGS.CROP_WIDTH
         x = random.randint(0, h - th)
@@ -93,6 +94,7 @@ class MessytableDataset(Dataset):
         img_L_rgb = img_L_rgb[x:(x+th), y:(y+tw)]
         img_R_rgb = img_R_rgb[x:(x+th), y:(y+tw)]
         img_disp_l = img_disp_l[2*x: 2*(x+th), 2*y: 2*(y+tw)]  # depth original res in 1080*1920
+        print(img_L_rgb.shape, img_disp_l.shape)
         img_depth_l = img_depth_l[2*x: 2*(x+th), 2*y: 2*(y+tw)]
         img_disp_r = img_disp_r[2*x: 2*(x+th), 2*y: 2*(y+tw)]
         img_depth_r = img_depth_r[2*x: 2*(x+th), 2*y: 2*(y+tw)]
@@ -102,7 +104,7 @@ class MessytableDataset(Dataset):
 
         item = {}
         item['img_L'] = custom_augmentation(img_L_rgb)
-        print(img_L_rgb.shape, img_disp_l.shape)
+
         item['img_R'] = custom_augmentation(img_R_rgb)
         item['img_disp_l'] = torch.tensor(img_disp_l, dtype=torch.float32).unsqueeze(0)  # [bs, 1, H, W]
         item['img_depth_l'] = torch.tensor(img_depth_l, dtype=torch.float32).unsqueeze(0)  # [bs, 1, H, W]
