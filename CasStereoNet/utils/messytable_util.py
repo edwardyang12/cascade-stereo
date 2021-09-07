@@ -37,10 +37,10 @@ def get_split_files(split_file, debug=False, sub=100, isTest=False, onReal=False
 
         img_L = [os.path.join(os.path.join(dataset, p), img_left_name) for p in prefix]
         img_R = [os.path.join(os.path.join(dataset, p), img_right_name) for p in prefix]
-        img_depth_l = [os.path.join(os.path.join(cfg.DIR.DATASET, p), cfg.SPLIT.DEPTHL) for p in prefix]
-        img_depth_r = [os.path.join(os.path.join(cfg.DIR.DATASET, p), cfg.SPLIT.DEPTHR) for p in prefix]
-        img_meta = [os.path.join(os.path.join(cfg.DIR.DATASET, p), cfg.SPLIT.META) for p in prefix]
-        img_label = [os.path.join(os.path.join(cfg.REAL.DATASET, p), cfg.SPLIT.LABEL) for p in prefix]
+        img_depth_l = [os.path.join(os.path.join(cfg.DIR.SIMSET, p), cfg.SPLIT.DEPTHL) for p in prefix]
+        img_depth_r = [os.path.join(os.path.join(cfg.DIR.SIMSET, p), cfg.SPLIT.DEPTHR) for p in prefix]
+        img_meta = [os.path.join(os.path.join(cfg.DIR.SIMSET, p), cfg.SPLIT.META) for p in prefix]
+        img_label = [os.path.join(os.path.join(cfg.REAL.SIMSET, p), cfg.SPLIT.LABEL) for p in prefix]
 
         if debug is True:
             img_L = img_L[:sub]
