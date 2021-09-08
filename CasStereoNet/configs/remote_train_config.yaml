@@ -2,7 +2,7 @@
 
 # Directories
 DIR:
-  DATASET: './linked_real_v9'  #  directory of your training dataset
+  DATASET: './linked_sim_v9'  #  directory of your training dataset
   SIMSET: './linked_sim_v9'
 
 # Split files
