@@ -10,8 +10,8 @@ cfg = _C
 
 # Directories
 _C.DIR = CN()
-_C.DIR.DATASET = './linked_sim_v9'
-_C.DIR.OUTPUT = '/cephfs/edward/checkpoints/cascade_small'
+_C.DIR.DATASET = './linked_real_v9'
+_C.DIR.OUTPUT = '/cephfs/edward/checkpoints/cascade_real_2'
 _C.DIR.SIMSET = './linked_sim_v9'
 
 # Split files
