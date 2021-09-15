@@ -244,15 +244,14 @@ def train_sample(sample):
     img_focal_length = sample['focal_length'].cuda()
     img_baseline = sample['baseline'].cuda()
 
-    if args.warp_op:
-        img_disp_r = sample['img_disp_r'].cuda()
-        disp_gt = apply_disparity_cu(img_disp_r, img_disp_r.type(torch.int))  # [bs, 1, H, W]
-        del img_disp_r
-    
-    # Resize the 2x resolution disp and depth back to 256 * 512
-    # Note: This step should go after the apply_disparity_cu
     disp_gt = F.interpolate(disp_gt, (256, 512)).squeeze(1)  # [bs, H, W]
     depth_gt = F.interpolate(depth_gt, (256, 512))  # [bs, 1, H, W]
+
+    if args.warp_op:
+        img_disp_r = sample['img_disp_r'].cuda()
+        img_disp_r = F.interpolate(img_disp_r, (256, 512)).squeeze(1)  # [bs, H, W]
+        disp_gt = apply_disparity_cu(img_disp_r, img_disp_r.type(torch.int))  # [bs, 1, H, W]
+        del img_disp_r
 
     optimizer.zero_grad()
 
@@ -307,7 +306,7 @@ def test_sample(sample):
         img_disp_r = sample['img_disp_r'].cuda()
         disp_gt = apply_disparity_cu(img_disp_r, img_disp_r.type(torch.int))  # [bs, 1, H, W]
         del img_disp_r
-    
+
     disp_gt = F.interpolate(disp_gt, (256, 512)).squeeze(1) # [bs, H, W]
     depth_gt = F.interpolate(depth_gt, (256, 512))
 
@@ -337,4 +336,3 @@ def test_sample(sample):
 
 if __name__ == '__main__':
     train()
-

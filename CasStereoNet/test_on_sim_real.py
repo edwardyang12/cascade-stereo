@@ -58,10 +58,17 @@ def test(model, val_loader, logger, log_dir):
         img_baseline = data['baseline'].cuda()
         prefix = data['prefix'][0]
 
+        img_disp_l = F.interpolate(img_disp_l, (540, 960))
+        img_depth_l = F.interpolate(img_depth_l, (540, 960))
+
         # If using warp_op, computing img_disp_l from img_disp_r
         if args.warp_op:
             img_disp_r = data['img_disp_r'].cuda()
             img_depth_r = data['img_depth_r'].cuda()
+
+            img_disp_r = F.interpolate(img_disp_r, (540, 960))
+            img_depth_r = F.interpolate(img_depth_r, (540, 960))
+
             img_disp_l = apply_disparity_cu(img_disp_r, img_disp_r.type(torch.int))
             img_depth_l = apply_disparity_cu(img_depth_r, img_disp_r.type(torch.int))  # [bs, 1, H, W]
 
@@ -70,8 +77,6 @@ def test(model, val_loader, logger, log_dir):
             img_L = F.interpolate(img_L, (540, 960))
             img_R = F.interpolate(img_R, (540, 960))
 
-        img_disp_l = F.interpolate(img_disp_l, (540, 960))
-        img_depth_l = F.interpolate(img_depth_l, (540, 960))
         img_label = F.interpolate(img_label, (540, 960)).type(torch.int)
 
         # Pad the imput image and depth disp image to 960 * 544
