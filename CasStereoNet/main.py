@@ -249,10 +249,7 @@ def train_sample(sample):
 
     if args.warp_op:
         img_disp_r = sample['img_disp_r'].cuda()
-        if(len(img_disp_r.shape)!=4):
-            img_disp_r = F.interpolate(img_disp_r, (256, 512))  # [bs, H, W]
-        else:
-            img_disp_r = F.interpolate(img_disp_r, (256, 512))  # [bs, H, W]
+        img_disp_r = F.interpolate(img_disp_r, (256, 512))  # [bs, H, W]
         disp_gt = apply_disparity_cu(img_disp_r, img_disp_r.type(torch.int))  # [bs, 1, H, W]
         del img_disp_r
 
