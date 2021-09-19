@@ -16,8 +16,8 @@ _C.DIR.SIMSET = './linked_sim_v9'
 
 # Split files
 _C.SPLIT = CN()
-_C.SPLIT.TRAIN = '/cephfs/edward/newTrain.txt'
-_C.SPLIT.VAL = '/cephfs/edward/newTest.txt'
+_C.SPLIT.TRAIN = '/cephfs/edward/lists/newTrain.txt'
+_C.SPLIT.VAL = '/cephfs/edward/lists/newTest.txt'
 _C.SPLIT.OBJ_NUM = 18  # Note: table + ground - 17th
 
 _C.SPLIT.LEFT = '0128_irL_denoised_half.png'
