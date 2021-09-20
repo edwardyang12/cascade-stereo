@@ -74,8 +74,11 @@ def test(model, val_loader, logger, log_dir):
 
         # If test on real dataset need to crop input image to (540, 960)
         if args.onreal:
-            img_L = F.interpolate(img_L, (540, 960))
-            img_R = F.interpolate(img_R, (540, 960))
+            img_L = F.interpolate(img_L, (540, 960), mode='bilinear',
+                             recompute_scale_factor=False, align_corners=False)
+            img_R = F.interpolate(img_R, (540, 960), mode='bilinear',
+                             recompute_scale_factor=False, align_corners=False)
+
 
         img_label = F.interpolate(img_label, (540, 960)).type(torch.int)
 
